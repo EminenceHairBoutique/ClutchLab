@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-/** Applies supabase/seed.sql (idempotent upserts) to DATABASE_URL. */
+/** Applies supabase/seed.sql + generated seed_content.sql (idempotent) to DATABASE_URL. */
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import postgres from "postgres";
@@ -25,6 +26,13 @@ try {
     await tx.file(path.join(repoRoot, "supabase", "seed.sql"));
   });
   console.log("seed applied");
+  const contentSeed = path.join(repoRoot, "supabase", "seed_content.sql");
+  if (existsSync(contentSeed)) {
+    await sql.begin(async (tx) => {
+      await tx.file(contentSeed);
+    });
+    console.log("content seed applied");
+  }
 } finally {
   await sql.end();
 }

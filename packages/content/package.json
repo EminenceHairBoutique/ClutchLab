@@ -1,0 +1,27 @@
+{
+  "name": "@clutchlab/content",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "generate": "tsx scripts/generate-sql.ts"
+  },
+  "dependencies": {
+    "@clutchlab/meta-engine": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@clutchlab/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "tsx": "^4.20.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

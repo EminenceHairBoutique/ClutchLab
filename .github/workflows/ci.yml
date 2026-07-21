@@ -51,6 +51,11 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Generated content seed is in sync
+        run: |
+          pnpm --filter @clutchlab/content generate
+          git diff --exit-code supabase/seed_content.sql
+
       - name: Test (unit + RLS integration)
         run: pnpm test
 

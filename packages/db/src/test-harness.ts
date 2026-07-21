@@ -19,6 +19,7 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const SHIM = path.join(REPO_ROOT, "supabase", "tests", "harness", "auth_shim.sql");
 const MIGRATIONS_DIR = path.join(REPO_ROOT, "supabase", "migrations");
 const SEED = path.join(REPO_ROOT, "supabase", "seed.sql");
+const CONTENT_SEED = path.join(REPO_ROOT, "supabase", "seed_content.sql");
 
 export interface AuthedSql {
   sql: postgres.TransactionSql;
@@ -102,6 +103,9 @@ async function applySchema(sql: postgres.Sql): Promise<void> {
     await sql.file(path.join(MIGRATIONS_DIR, file));
   }
   await sql.file(SEED);
+  if (existsSync(CONTENT_SEED)) {
+    await sql.file(CONTENT_SEED);
+  }
 }
 
 function makeTestDb(sql: postgres.Sql, cleanup: () => Promise<void>): TestDb {
