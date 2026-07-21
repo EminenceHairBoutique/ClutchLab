@@ -42,6 +42,7 @@ export class MockAuthStore {
   private usersById = new Map<string, MockUser>();
   private sessions = new Map<string, string>();
   private profiles = new Map<string, MockProfileRecord>();
+  private roles = new Map<string, Set<string>>();
 
   createUser(email: string, password: string): { ok: true; user: MockUser } | { ok: false; error: string } {
     const normalized = email.trim().toLowerCase();
@@ -98,6 +99,20 @@ export class MockAuthStore {
     }
     this.profiles.set(userId, { ...current, ...patch });
     return { ok: true };
+  }
+
+  /**
+   * Mirrors server-side role granting (service-role tooling in real Supabase).
+   * There is intentionally no way to reach this from a client session.
+   */
+  grantRole(userId: string, roleSlug: string): void {
+    const existing = this.roles.get(userId) ?? new Set<string>();
+    existing.add(roleSlug);
+    this.roles.set(userId, existing);
+  }
+
+  getRoles(userId: string): string[] {
+    return [...(this.roles.get(userId) ?? [])];
   }
 }
 
