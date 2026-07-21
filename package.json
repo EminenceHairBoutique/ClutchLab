@@ -13,8 +13,8 @@
     "test": "turbo run test",
     "build": "turbo run build",
     "e2e": "turbo run e2e",
-    "db:migrate": "node scripts/db-migrate.mjs",
-    "db:seed": "node scripts/db-seed.mjs"
+    "db:migrate": "pnpm --filter @clutchlab/db run migrate",
+    "db:seed": "pnpm --filter @clutchlab/db run seed"
   },
   "devDependencies": {
     "turbo": "^2.5.0"
