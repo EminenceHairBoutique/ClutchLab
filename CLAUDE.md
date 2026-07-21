@@ -31,6 +31,31 @@ Next.js over a Vite SPA is deliberate — SEO/SSR requirements in spec §19. Don
 | migrate | `pnpm db:migrate` |
 | seed | `pnpm db:seed` |
 
+`test` includes RLS integration tests that boot a throwaway local PostgreSQL 16 cluster
+(`supabase/tests/harness/`) and apply the real migrations; they skip with a loud warning if no
+`pg_ctl` is on PATH. E2E route smoke: `pnpm e2e` (Playwright, preinstalled Chromium).
+
+## Directory map
+
+```
+apps/web              Next.js 15 App Router PWA (mobile-first, dark-first)
+packages/config       Zod env validation + shared tsconfig/eslint presets
+packages/types        Shared domain types + hand-authored Database types (regen cmd in SETUP.md)
+packages/ui           Design system: Tailwind v4 @theme tokens + shadcn-style components
+supabase/migrations   Supabase-compatible SQL (runs unchanged on real Supabase)
+supabase/seed.sql     Roles, permissions, device knowledge base (data_status + sources)
+supabase/tests        Local-PG auth shim + RLS integration suite (test harness only)
+apps/admin            Phase 2 · packages/meta-engine Phase 2 · packages/calibration Phase 3
+apps/mobile           Phase 9 (Expo)
+```
+
+Docs: `PROGRESS.md` (ledger — read first) · `IMPLEMENTATION_PLAN.md` (phase map) · `SETUP.md`
+(env + Supabase swap-in) · `ARCHITECTURE.md` (stack rationale).
+
+Auth runs against real Supabase when env is configured; otherwise it auto-selects the clearly
+named `auth.mock.ts` in-memory adapter (or force with `AUTH_MOCK=1`). Never ship mock mode to
+production — prod env validation refuses it.
+
 ## Hard rules
 
 - **No gameplay automation.** No macros, overlays, injected code, or live-match assistance.
