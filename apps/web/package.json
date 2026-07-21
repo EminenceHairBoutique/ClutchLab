@@ -15,6 +15,7 @@
     "@clutchlab/config": "workspace:*",
     "@clutchlab/types": "workspace:*",
     "@clutchlab/ui": "workspace:*",
+    "@sentry/nextjs": "^9.47.1",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.5",
     "lucide-react": "^0.515.0",

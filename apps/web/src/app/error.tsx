@@ -3,7 +3,7 @@
 import { Button } from "@clutchlab/ui";
 import { useEffect } from "react";
 
-export default function GlobalError({
+export default function ErrorBoundary({
   error,
   reset,
 }: {
@@ -11,8 +11,12 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Surfaced to Sentry once a DSN is configured (see instrumentation).
     console.error(error);
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+      void import("@sentry/nextjs").then((Sentry) => {
+        Sentry.captureException(error);
+      });
+    }
   }, [error]);
 
   return (
