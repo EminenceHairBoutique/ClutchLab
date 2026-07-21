@@ -10,7 +10,7 @@ Persistent progress ledger per spec §0.1.2. A fresh session must be able to res
 | Phase | Name | Status |
 |---|---|---|
 | 0 | Repository audit | **done** |
-| 1 | Foundation | **in progress** |
+| 1 | Foundation | **done** (2026-07-21, exit gate green) |
 | 2 | Versioned content + meta MVP | not started |
 | 3 | Settings + sensitivity MVP | not started |
 | 4 | Training MVP | not started |
@@ -37,26 +37,29 @@ Environment audit (shapes the Phase 1 approach):
   against a local cluster instead of being mock-only.
 - Playwright Chromium preinstalled at `/opt/pw-browsers/chromium` (no browser download needed).
 
-## Phase 1 — Foundation (in progress)
+## Phase 1 — Foundation (done, 2026-07-21)
 
 Scope (spec §20 Phase 1): monorepo structure, design system, auth, database, RLS, environment
 validation, core navigation, user profile, admin roles, CI, error monitoring.
 
-Step checklist:
+All steps complete:
 
-- [x] Phase 0 audit recorded
-- [ ] Docs: PROGRESS.md, IMPLEMENTATION_PLAN.md, CLAUDE.md refresh — commit
-- [ ] Monorepo scaffold (root configs, pnpm workspace, turbo, tsconfig base)
-- [ ] `packages/config` — zod env validation + shared tsconfig/eslint presets + tests
-- [ ] `packages/ui` — Tailwind v4 tokens + base components + tests
-- [ ] `apps/web` — Next.js shell, bottom nav (5 + More), all 11 IA routes, disclaimer
-- [ ] `supabase/` — identity migrations, RLS on every user-owned table, seeds, auth-shim test
-      harness, vitest RLS integration suite; `Database` types in `packages/types`
-- [ ] Auth — `@supabase/ssr` + `auth.mock.ts` adapter, login/signup/callback/signout, gated `/profile`
-- [ ] Admin roles — `requireRole` + gated `/admin` stub
-- [ ] CI workflow + optional Sentry wiring
-- [ ] Playwright route smoke (no console errors) + full exit gate + SETUP.md/ARCHITECTURE.md/.env.example
-- [ ] PROGRESS.md updated to done + commit + push
+- [x] Docs: PROGRESS.md, IMPLEMENTATION_PLAN.md, CLAUDE.md refresh
+- [x] Monorepo scaffold (pnpm workspace + catalog, Turborepo, strict tsconfig base)
+- [x] `packages/config` — zod env validation (prod fail-fast, dev/test mock mode) + eslint preset (10 tests)
+- [x] `packages/ui` — Tailwind v4 tokens + Button/Card/Badge/TierBadge/Input/Label/Tabs/Sheet/Skeleton/Stat (11 tests)
+- [x] `apps/web` — shell, bottom nav (5 + More→11 §4 destinations), honest phase placeholders, disclaimer footer, PWA manifest + original icon
+- [x] `supabase/` — identity migration (12 tables, RLS on all), seed (9 roles, 12 permissions, 15-device KB, nothing marked verified), auth-shim harness, **19 RLS integration tests on real Postgres**; `Database` types + `ROLE_RANKS` in `packages/types`; idempotent `db:migrate`/`db:seed` (verified against a scratch cluster)
+- [x] Auth — `AuthGateway` (supabase ssr impl + `auth.mock.ts` with visible banner), middleware session refresh, login/signup/PKCE callback/signout, `/profile` guest vs authed with zod-validated save (13 unit tests)
+- [x] Admin roles — DB-side `has_role_at_least` via RPC, mock rank ladder, gated `/admin` stub (5 tests)
+- [x] CI (`.github/workflows/ci.yml`: lint→typecheck→test w/ PG service→build→e2e) + env-gated Sentry (server/client/onRequestError)
+- [x] Playwright e2e: 15 tests — all 11 routes console-error-free on a mobile viewport, More-sheet IA, signup→profile-save→signout, bad-credential rejection, admin gate
+- [x] SETUP.md, ARCHITECTURE.md, .env.example, README refresh
+
+**Exit gate (run at repo root, 2026-07-21):** `pnpm lint` ✅ (5 workspaces) · `pnpm typecheck` ✅
+(5 workspaces) · `pnpm test` ✅ (67 tests: 10 config + 11 ui + 19 RLS integration + 27 web) ·
+`APP_ENV=test pnpm build` ✅ (clean, no warnings) · `APP_ENV=test pnpm e2e` ✅ (15 Playwright
+tests, all 11 routes console-error-free on a mobile viewport).
 
 ## Decisions log
 
@@ -73,6 +76,9 @@ Step checklist:
 | D9 | 2026-07-21 | Phase 1 packages: `config`, `types`, `ui` only; `meta-engine`/`calibration`/`analytics`/`content` created in their phases | Avoid empty shells; spec structure preserved. |
 | D10 | 2026-07-21 | Device knowledge-base rows carry `data_status` (`verified|unverified|sample`) + source columns in the DB | Spec §0.1.8/§2.2: no invented data; status lives in the database, not just UI. |
 | D11 | 2026-07-21 | Vitest for unit/component; Playwright smoke E2E via preinstalled Chromium | Exit gate literally requires routes rendering without console errors; Playwright verifies it honestly. |
+| D12 | 2026-07-21 | `@supabase/ssr` pinned ≥0.12 with supabase-js ≥2.110 | ssr 0.6 predates supabase-js 2.110's changed `SupabaseClient` generic arity — typed queries collapsed to `never`. Keep the pair in lockstep. |
+| D13 | 2026-07-21 | Verification builds declare `APP_ENV=test`; session pages are `force-dynamic`; env validated at server boot (`instrumentation.ts`) | Production without Supabase must fail fast (spec), while CI/sandbox builds without secrets must pass the gate. Session UIs must never bake auth state into static HTML. |
+| D14 | 2026-07-21 | RLS harness drops to the `postgres` system user via `runuser` when running as root | PostgreSQL refuses to run as root; container sandboxes run as root. Non-root dev machines/CI exec directly. |
 
 ## Blockers (with exact unblocking steps)
 
@@ -86,6 +92,15 @@ Step checklist:
 
 ## Next steps (exact)
 
-1. Commit docs (this file, IMPLEMENTATION_PLAN.md, CLAUDE.md refresh).
-2. Monorepo scaffold → `pnpm install` green.
-3. Continue Phase 1 checklist top-to-bottom; then Phase 2 per IMPLEMENTATION_PLAN.md.
+1. **Phase 2 start:** attempt web research to verify PUBG Mobile 4.5 / S31 facts (spec §24.2)
+   → record findings + sources in `DATA_VERIFICATION.md`. If the sandbox network blocks
+   research, seed the §2.1 baseline as `unverified` and log it here.
+2. Phase 2 migrations: game_editions, regions, game_versions, patches, patch_changes, seasons,
+   mode_seasons, event_windows, content_impact_links, modes, mode_rules, maps, map_versions,
+   weapons, weapon_versions, weapon_stats, weapon_availability, attachments,
+   attachment_versions, attachment_effects, weapon_pairings, weapon_tiers, tier_methodologies,
+   meta_snapshots, meta_evidence, sources, source_snapshots, claims, claim_evidence,
+   review_tasks (+ RLS + tests).
+3. `packages/meta-engine` with §10 explainable scoring + unit tests.
+4. `/meta` + `/weapons` routes on real data; version/season intelligence on Home.
+5. `apps/admin` scaffold with publishing basics (§12 subset). Exit gate, then Phase 3.

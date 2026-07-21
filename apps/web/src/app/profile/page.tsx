@@ -30,6 +30,7 @@ export default async function ProfilePage() {
   if (!user) {
     return (
       <div className="mx-auto max-w-md space-y-4 py-6">
+        <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
         <MockModeBanner />
         <Card>
           <CardHeader>

@@ -31,20 +31,24 @@ Next.js over a Vite SPA is deliberate — SEO/SSR requirements in spec §19. Don
 | migrate | `pnpm db:migrate` |
 | seed | `pnpm db:seed` |
 
-`test` includes RLS integration tests that boot a throwaway local PostgreSQL 16 cluster
+`test` includes RLS integration tests that boot a throwaway local PostgreSQL cluster
 (`supabase/tests/harness/`) and apply the real migrations; they skip with a loud warning if no
-`pg_ctl` is on PATH. E2E route smoke: `pnpm e2e` (Playwright, preinstalled Chromium).
+`initdb`/`pg_ctl` is available and no `TEST_DATABASE_URL` is set. E2E route smoke: `pnpm e2e`
+(Playwright, preinstalled Chromium). **Builds without production credentials must set
+`APP_ENV=test`** (`APP_ENV=test pnpm build` / `APP_ENV=test pnpm e2e`) — production mode
+deliberately fails fast without Supabase env.
 
 ## Directory map
 
 ```
 apps/web              Next.js 15 App Router PWA (mobile-first, dark-first)
-packages/config       Zod env validation + shared tsconfig/eslint presets
-packages/types        Shared domain types + hand-authored Database types (regen cmd in SETUP.md)
+packages/config       Zod env validation + shared eslint flat config
+packages/types        Database types (hand-authored; regen cmd in SETUP.md) + role constants
 packages/ui           Design system: Tailwind v4 @theme tokens + shadcn-style components
+packages/db           db:migrate/db:seed runner + local-PG RLS test harness
 supabase/migrations   Supabase-compatible SQL (runs unchanged on real Supabase)
 supabase/seed.sql     Roles, permissions, device knowledge base (data_status + sources)
-supabase/tests        Local-PG auth shim + RLS integration suite (test harness only)
+supabase/tests        Auth shim for the local harness (never run against real Supabase)
 apps/admin            Phase 2 · packages/meta-engine Phase 2 · packages/calibration Phase 3
 apps/mobile           Phase 9 (Expo)
 ```
