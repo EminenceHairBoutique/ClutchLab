@@ -11,7 +11,7 @@ Persistent progress ledger per spec §0.1.2. A fresh session must be able to res
 |---|---|---|
 | 0 | Repository audit | **done** |
 | 1 | Foundation | **done** (2026-07-21, exit gate green) |
-| 2 | Versioned content + meta MVP | not started |
+| 2 | Versioned content + meta MVP | **done** (2026-07-21, exit gate green) |
 | 3 | Settings + sensitivity MVP | not started |
 | 4 | Training MVP | not started |
 | 5 | Control Studio | not started |
@@ -77,6 +77,10 @@ tests, all 11 routes console-error-free on a mobile viewport).
 | D10 | 2026-07-21 | Device knowledge-base rows carry `data_status` (`verified|unverified|sample`) + source columns in the DB | Spec §0.1.8/§2.2: no invented data; status lives in the database, not just UI. |
 | D11 | 2026-07-21 | Vitest for unit/component; Playwright smoke E2E via preinstalled Chromium | Exit gate literally requires routes rendering without console errors; Playwright verifies it honestly. |
 | D12 | 2026-07-21 | `@supabase/ssr` pinned ≥0.12 with supabase-js ≥2.110 | ssr 0.6 predates supabase-js 2.110's changed `SupabaseClient` generic arity — typed queries collapsed to `never`. Keep the pair in lockstep. |
+| D15 | 2026-07-21 | Content catalog lives in `packages/content` (typed, zod-validated) and generates `supabase/seed_content.sql` deterministically; tiers computed through the meta-engine at generation time | One source of truth for seed AND unconfigured-mode reads; seeded numbers can never diverge from live scoring. CI drift-checks the generated file. |
+| D16 | 2026-07-21 | Editorial console ships inside apps/web at `/admin` (not a separate apps/admin yet) | Avoids duplicating the auth/session stack for a 4-page console; revisit when the §12 surface grows. |
+| D17 | 2026-07-21 | Weapon numeric stats (damage/RoF/velocity/magazines) seeded as ABSENT, not estimated | Spec §2.2/§5.3: no unsupported precision. `weapon_stats` is an EAV table that only ever holds sourced values; UI renders "not yet verified" states. |
+| D18 | 2026-07-21 | Editorial baseline snapshot published with confidence `low` + evidence notes; arena modes excluded from tier seeding | Publishing clearly-labeled editorial analysis is §2.2-compliant; arena tiers deferred until researched (review task open). |
 | D13 | 2026-07-21 | Verification builds declare `APP_ENV=test`; session pages are `force-dynamic`; env validated at server boot (`instrumentation.ts`) | Production without Supabase must fail fast (spec), while CI/sandbox builds without secrets must pass the gate. Session UIs must never bake auth state into static HTML. |
 | D14 | 2026-07-21 | RLS harness drops to the `postgres` system user via `runuser` when running as root | PostgreSQL refuses to run as root; container sandboxes run as root. Non-root dev machines/CI exec directly. |
 
@@ -90,17 +94,41 @@ tests, all 11 routes console-error-free on a mobile viewport).
 | No Stripe keys (Phase 8) | Billing not started yet anyway | Needed at Phase 8 only. |
 | Web research from sandbox unverified | §24.2 fact verification (PUBG 4.5/S31 dates) may be blocked by network policy | Attempt at Phase 2 start; if blocked, seed §2.1 baseline as `unverified` and record in DATA_VERIFICATION.md. |
 
+## Phase 2 — Versioned content + meta MVP (done, 2026-07-21)
+
+- Research pass: 7 claims corroborated via secondary sources → `DATA_VERIFICATION.md`; all
+  seeded as `unverified` with sources attached. Could-not-verify list drives 4 seeded review
+  tasks (official notes capture, UR end date, Mobile map rotation, per-weapon balance details).
+- Migration 0002: 27 content tables (versions/seasons/patches+changes+impacts, modes+rules,
+  maps+map_versions, weapons/attachments/effects/pairings, tier methodologies/snapshots/tiers/
+  evidence, sources/claims/evidence, review_tasks, content_revisions) — RLS everywhere: public
+  catalog reads, editor+ writes, draft snapshots hidden by policy, editorial-internal queues.
+- `packages/meta-engine`: §10 explainable scoring — labeled breakdown summing to the score,
+  per-mode weights, availability-adjusted view, aim-assist-off recoil penalty, confidence
+  discount, reason-required editorial overrides. 16 tests.
+- `packages/content`: typed catalog (26 §5.3 weapons, 27 attachments with qualitative-only
+  effects, 7 modes, 8 maps, seasons/patch/claims) → deterministic `seed_content.sql`
+  (CI drift check) + bundled read path for unconfigured mode.
+- Web: `/meta` per-mode tier boards with expandable why-this-tier breakdowns; `/weapons` +
+  detail pages with patch-impact banners and explicit not-yet-verified stats; home version &
+  season intelligence with countdowns; sitemap/robots. Provenance disclosed on every meta page.
+- `/admin` editorial console: overview counts, review queue (start/done/dismiss), version
+  creation (source required, starts unverified), snapshot publish/archive; all mutations write
+  `content_revisions`; every write path RLS-enforced in the database.
+
+**Exit gate (repo root, 2026-07-21):** `pnpm lint` ✅ (7 workspaces) · `pnpm typecheck` ✅ ·
+`pnpm test` ✅ (126 tests: 10 config + 11 ui + 16 meta-engine + 21 content + 31 db/RLS + 37 web)
+· `APP_ENV=test pnpm build` ✅ · `APP_ENV=test pnpm e2e` ✅ (21 tests).
+
 ## Next steps (exact)
 
-1. **Phase 2 start:** attempt web research to verify PUBG Mobile 4.5 / S31 facts (spec §24.2)
-   → record findings + sources in `DATA_VERIFICATION.md`. If the sandbox network blocks
-   research, seed the §2.1 baseline as `unverified` and log it here.
-2. Phase 2 migrations: game_editions, regions, game_versions, patches, patch_changes, seasons,
-   mode_seasons, event_windows, content_impact_links, modes, mode_rules, maps, map_versions,
-   weapons, weapon_versions, weapon_stats, weapon_availability, attachments,
-   attachment_versions, attachment_effects, weapon_pairings, weapon_tiers, tier_methodologies,
-   meta_snapshots, meta_evidence, sources, source_snapshots, claims, claim_evidence,
-   review_tasks (+ RLS + tests).
-3. `packages/meta-engine` with §10 explainable scoring + unit tests.
-4. `/meta` + `/weapons` routes on real data; version/season intelligence on Home.
-5. `apps/admin` scaffold with publishing basics (§12 subset). Exit gate, then Phase 3.
+1. **Phase 3 start (settings + sensitivity MVP):** migrations for setting_definitions/
+   setting_versions, sensitivity_profiles/values/tests/results/recommendations, setting_codes
+   (verbatim storage only), profile_forks/change_logs, pro_profiles/teams/pro_settings/
+   verification_sources/reviews (+ RLS + tests).
+2. `packages/calibration`: §5.7 guided flow state machine (one variable at a time) + tests.
+3. `/settings` explainer library (≥30 seeded explainers, §5.6 fields) + Aim Assist Decision Lab
+   content; `/settings/sensitivity` builder with named profiles, version history, rollback.
+4. `/pros` vault with verification labels + staleness rules + compare/fork (sample-labeled
+   profiles only until verified sources exist).
+5. Exit gate, then Phase 4 (training MVP) per IMPLEMENTATION_PLAN.md.

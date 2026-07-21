@@ -41,17 +41,21 @@ deliberately fails fast without Supabase env.
 ## Directory map
 
 ```
-apps/web              Next.js 15 App Router PWA (mobile-first, dark-first)
+apps/web              Next.js 15 App Router PWA; /admin = editor-gated editorial console
 packages/config       Zod env validation + shared eslint flat config
 packages/types        Database types (hand-authored; regen cmd in SETUP.md) + role constants
 packages/ui           Design system: Tailwind v4 @theme tokens + shadcn-style components
+packages/meta-engine  §10 explainable tier scoring (versioned methodology)
+packages/content      Typed 4.5/S31 catalog → generates supabase/seed_content.sql
 packages/db           db:migrate/db:seed runner + local-PG RLS test harness
 supabase/migrations   Supabase-compatible SQL (runs unchanged on real Supabase)
-supabase/seed.sql     Roles, permissions, device knowledge base (data_status + sources)
+supabase/seed.sql     Roles, permissions, device KB · seed_content.sql = GENERATED, don't edit
 supabase/tests        Auth shim for the local harness (never run against real Supabase)
-apps/admin            Phase 2 · packages/meta-engine Phase 2 · packages/calibration Phase 3
-apps/mobile           Phase 9 (Expo)
+packages/calibration  Phase 3 · apps/mobile Phase 9 (Expo)
 ```
+
+After editing `packages/content`, run `pnpm --filter @clutchlab/content generate` and commit the
+regenerated `supabase/seed_content.sql` — CI fails on drift.
 
 Docs: `PROGRESS.md` (ledger — read first) · `IMPLEMENTATION_PLAN.md` (phase map) · `SETUP.md`
 (env + Supabase swap-in) · `ARCHITECTURE.md` (stack rationale).
