@@ -51,7 +51,8 @@ packages/db           db:migrate/db:seed runner + local-PG RLS test harness
 supabase/migrations   Supabase-compatible SQL (runs unchanged on real Supabase)
 supabase/seed.sql     Roles, permissions, device KB · seed_content.sql = GENERATED, don't edit
 supabase/tests        Auth shim for the local harness (never run against real Supabase)
-packages/calibration  Phase 3 · apps/mobile Phase 9 (Expo)
+packages/calibration  §5.7 sensitivity model + 14-step guided calibration flow
+apps/mobile           Phase 9 (Expo)
 ```
 
 After editing `packages/content`, run `pnpm --filter @clutchlab/content generate` and commit the

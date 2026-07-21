@@ -12,7 +12,7 @@ Persistent progress ledger per spec §0.1.2. A fresh session must be able to res
 | 0 | Repository audit | **done** |
 | 1 | Foundation | **done** (2026-07-21, exit gate green) |
 | 2 | Versioned content + meta MVP | **done** (2026-07-21, exit gate green) |
-| 3 | Settings + sensitivity MVP | not started |
+| 3 | Settings + sensitivity MVP | **done** (2026-07-21, exit gate green) |
 | 4 | Training MVP | not started |
 | 5 | Control Studio | not started |
 | 6 | Community + verification | not started |
@@ -120,15 +120,35 @@ tests, all 11 routes console-error-free on a mobile viewport).
 `pnpm test` ✅ (126 tests: 10 config + 11 ui + 16 meta-engine + 21 content + 31 db/RLS + 37 web)
 · `APP_ENV=test pnpm build` ✅ · `APP_ENV=test pnpm e2e` ✅ (21 tests).
 
+## Phase 3 — Settings + sensitivity MVP (done, 2026-07-21)
+
+- Migration 0003: settings library (+per-version retest flags), user-owned sensitivity profiles
+  with **immutable version history** (no update/delete policies — rollback appends), 1–300
+  value constraints, verbatim `setting_codes`, calibration catalog + owner-scoped results and
+  recommendations, pro vault (profiles/teams/settings/verification tables). 21 RLS tests → 42.
+- `packages/calibration`: family×scope model, the §5.7 14-step guided flow enforcing
+  one-variable-at-a-time, honest ±5% bucketed recommendations ("check grip before chasing
+  numbers"). 12 tests.
+- Content: 35 settings explainers (§5.6 fields), the calibration catalog seeded from the same
+  package, 3 sample teams + 10 pro profiles that are **explicitly fictional** (sample
+  verification + fictional notes) — never invented settings for real players.
+- Web: `/settings` explainer library; `/settings/sensitivity` builder (create → edit grid →
+  save-as-version → rollback → verbatim codes → guided calibration wizard committing one
+  version with per-step results and server-computed recommendations); `/pros` vault with
+  verification badges, staleness display, delta comparison, and fork-to-my-profile.
+- Deviation logged: Aim Assist Decision Lab shipped as explainer content only; the structured
+  on/off A/B test drills land with Phase 4's drill engine (they are drills by nature).
+
+**Exit gate (repo root, 2026-07-21):** `pnpm lint` ✅ (8 workspaces) · `pnpm typecheck` ✅ ·
+`pnpm test` ✅ (155 tests: 10 config + 11 ui + 16 meta-engine + 12 calibration + 25 content +
+42 db/RLS + 39 web) · `APP_ENV=test pnpm build` ✅ · `APP_ENV=test pnpm e2e` ✅ (28 tests).
+
 ## Next steps (exact)
 
-1. **Phase 3 start (settings + sensitivity MVP):** migrations for setting_definitions/
-   setting_versions, sensitivity_profiles/values/tests/results/recommendations, setting_codes
-   (verbatim storage only), profile_forks/change_logs, pro_profiles/teams/pro_settings/
-   verification_sources/reviews (+ RLS + tests).
-2. `packages/calibration`: §5.7 guided flow state machine (one variable at a time) + tests.
-3. `/settings` explainer library (≥30 seeded explainers, §5.6 fields) + Aim Assist Decision Lab
-   content; `/settings/sensitivity` builder with named profiles, version history, rollback.
-4. `/pros` vault with verification labels + staleness rules + compare/fork (sample-labeled
-   profiles only until verified sources exist).
-5. Exit gate, then Phase 4 (training MVP) per IMPLEMENTATION_PLAN.md.
+1. **Phase 4 (training MVP):** migrations for skills/drills/drill_versions/drill_steps/
+   training_plans/plan_items/user_training_sessions/drill_results/benchmarks/wow_maps + RLS.
+2. Content: ≥40 drills (§5.10 structure incl. the aim-assist A/B drills), ≥10 training plans,
+   WoW map directory entries (codes with verify dates).
+3. `/training`: academy browser, daily plan generator (5–60 min), session tracking + results,
+   weekly summary; benchmarks.
+4. Exit gate, then Phase 5 (Control Studio) per IMPLEMENTATION_PLAN.md.
