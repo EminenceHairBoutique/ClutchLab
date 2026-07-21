@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@clutchlab/ui", "@clutchlab/config", "@clutchlab/types"],
+  transpilePackages: [
+    "@clutchlab/ui",
+    "@clutchlab/config",
+    "@clutchlab/types",
+    "@clutchlab/content",
+    "@clutchlab/meta-engine",
+  ],
   eslint: {
     // Linting runs as a dedicated `pnpm lint` gate; don't duplicate it inside `next build`.
     ignoreDuringBuilds: true,

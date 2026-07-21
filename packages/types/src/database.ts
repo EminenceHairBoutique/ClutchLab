@@ -10,6 +10,26 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+/**
+ * Compact table typing for read-mostly content tables (Phase 2): Insert/Update
+ * are Partial<Row> — NOT NULL enforcement stays with Postgres. Identity tables
+ * keep fully hand-authored Insert/Update shapes.
+ */
+type ContentTable<Row extends Record<string, unknown>> = {
+  Row: Row;
+  Insert: Partial<Row>;
+  Update: Partial<Row>;
+  Relationships: [];
+};
+
+type SourceFields = {
+  source_name: string | null;
+  source_url: string | null;
+  source_date: string | null;
+};
+
+type Timestamps = { created_at: string; updated_at: string };
+
 export interface Database {
   public: {
     Tables: {
@@ -401,6 +421,350 @@ export interface Database {
         };
         Relationships: [];
       };
+      game_editions: ContentTable<{ slug: string; name: string; notes: string | null }>;
+      regions: ContentTable<{ slug: string; name: string }>;
+      game_versions: ContentTable<
+        {
+          id: string;
+          version: string;
+          edition_slug: string;
+          released_on: string | null;
+          window_end: string | null;
+          headline: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+          confidence: Database["public"]["Enums"]["confidence_level"];
+          last_verified_at: string | null;
+          notes: string | null;
+        } & SourceFields &
+          Timestamps
+      >;
+      patches: ContentTable<
+        {
+          id: string;
+          game_version_id: string;
+          name: string;
+          published_on: string | null;
+          summary: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      patch_changes: ContentTable<
+        {
+          id: string;
+          patch_id: string;
+          change_type: Database["public"]["Enums"]["change_type"];
+          area: Database["public"]["Enums"]["change_area"];
+          target_slug: string | null;
+          summary: string;
+          detail: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+          confidence: Database["public"]["Enums"]["confidence_level"];
+        } & SourceFields &
+          Timestamps
+      >;
+      seasons: ContentTable<
+        {
+          id: string;
+          slug: string;
+          kind: Database["public"]["Enums"]["season_kind"];
+          name: string;
+          starts_at: string | null;
+          ends_at: string | null;
+          game_version_id: string | null;
+          edition_slug: string;
+          data_status: Database["public"]["Enums"]["data_status"];
+          confidence: Database["public"]["Enums"]["confidence_level"];
+          last_verified_at: string | null;
+          notes: string | null;
+        } & SourceFields &
+          Timestamps
+      >;
+      event_windows: ContentTable<
+        {
+          id: string;
+          name: string;
+          mode_slug: string | null;
+          starts_at: string | null;
+          ends_at: string | null;
+          rules_note: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      modes: ContentTable<
+        {
+          slug: string;
+          name: string;
+          description: string | null;
+          aim_assist_allowed: boolean | null;
+          team_sizes: string[];
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      mode_rules: ContentTable<
+        {
+          id: string;
+          mode_slug: string;
+          rule_key: string;
+          rule_value: string;
+          note: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      maps: ContentTable<
+        {
+          slug: string;
+          name: string;
+          size_km: number | null;
+          terrain: string | null;
+          description: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      map_versions: ContentTable<
+        {
+          id: string;
+          map_slug: string;
+          game_version_id: string;
+          available: boolean | null;
+          modes: string[];
+          note: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      weapons: ContentTable<
+        {
+          slug: string;
+          name: string;
+          class: Database["public"]["Enums"]["weapon_class"];
+          ammo: Database["public"]["Enums"]["ammo_type"];
+          availability: Database["public"]["Enums"]["availability_kind"];
+          fire_modes: string[];
+          magazine_base: number | null;
+          magazine_extended: number | null;
+          description: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+          confidence: Database["public"]["Enums"]["confidence_level"];
+          last_verified_at: string | null;
+          notes: string | null;
+        } & SourceFields &
+          Timestamps
+      >;
+      weapon_versions: ContentTable<
+        {
+          id: string;
+          weapon_slug: string;
+          game_version_id: string;
+          change_note: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      weapon_stats: ContentTable<
+        {
+          id: string;
+          weapon_slug: string;
+          game_version_id: string;
+          stat_key: string;
+          value: number;
+          unit: string | null;
+          measurement: Database["public"]["Enums"]["measurement_kind"];
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      weapon_availability: ContentTable<
+        {
+          id: string;
+          weapon_slug: string;
+          map_slug: string;
+          game_version_id: string;
+          availability: Database["public"]["Enums"]["availability_kind"];
+          note: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      attachments: ContentTable<
+        {
+          slug: string;
+          name: string;
+          slot: Database["public"]["Enums"]["attachment_slot"];
+          compatible_classes: string[];
+          description: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      attachment_versions: ContentTable<
+        {
+          id: string;
+          attachment_slug: string;
+          game_version_id: string;
+          change_note: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      attachment_effects: ContentTable<
+        {
+          id: string;
+          attachment_slug: string;
+          effect_key: string;
+          direction: Database["public"]["Enums"]["effect_direction"];
+          magnitude: Database["public"]["Enums"]["effect_magnitude"];
+          note: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      weapon_attachments: ContentTable<{
+        weapon_slug: string;
+        attachment_slug: string;
+        data_status: Database["public"]["Enums"]["data_status"];
+      }>;
+      weapon_pairings: ContentTable<
+        {
+          id: string;
+          primary_slug: string;
+          secondary_slug: string;
+          archetype: string;
+          rationale: string | null;
+          mode_slug: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      tier_methodologies: ContentTable<
+        {
+          id: string;
+          slug: string;
+          name: string;
+          version: string;
+          description: string | null;
+          weights: Json;
+        } & Timestamps
+      >;
+      meta_snapshots: ContentTable<
+        {
+          id: string;
+          slug: string;
+          game_version_id: string;
+          season_id: string | null;
+          methodology_id: string;
+          status: Database["public"]["Enums"]["snapshot_status"];
+          published_at: string | null;
+          notes: string | null;
+          created_by: string | null;
+        } & Timestamps
+      >;
+      weapon_tiers: ContentTable<
+        {
+          id: string;
+          snapshot_id: string;
+          weapon_slug: string;
+          mode_slug: string;
+          tier: Database["public"]["Enums"]["tier_letter"];
+          score: number | null;
+          components: Json;
+          range_profile: Json;
+          role: string | null;
+          difficulty: Database["public"]["Enums"]["difficulty_level"];
+          confidence: Database["public"]["Enums"]["confidence_level"];
+          evidence_note: string | null;
+          previous_tier: Database["public"]["Enums"]["tier_letter"] | null;
+          change_note: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      meta_evidence: ContentTable<{
+        id: string;
+        weapon_tier_id: string;
+        kind: Database["public"]["Enums"]["evidence_kind"];
+        summary: string;
+        url: string | null;
+        data_status: Database["public"]["Enums"]["data_status"];
+        created_at: string;
+      }>;
+      content_impact_links: ContentTable<
+        {
+          id: string;
+          patch_change_id: string;
+          entity_type: string;
+          entity_id: string;
+          impact: Database["public"]["Enums"]["impact_level"];
+          note: string | null;
+        } & Timestamps
+      >;
+      sources: ContentTable<
+        {
+          id: string;
+          name: string;
+          url: string | null;
+          source_type: Database["public"]["Enums"]["source_kind"];
+          published_on: string | null;
+          retrieved_on: string | null;
+          reliability: Database["public"]["Enums"]["reliability_level"];
+          notes: string | null;
+        } & Timestamps
+      >;
+      source_snapshots: ContentTable<{
+        id: string;
+        source_id: string;
+        snapshot_note: string | null;
+        content_hash: string | null;
+        captured_at: string;
+      }>;
+      claims: ContentTable<
+        {
+          id: string;
+          slug: string;
+          statement: string;
+          verdict: Database["public"]["Enums"]["claim_verdict"];
+          confidence: Database["public"]["Enums"]["confidence_level"];
+          game_version_id: string | null;
+          notes: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & Timestamps
+      >;
+      claim_evidence: ContentTable<{
+        id: string;
+        claim_id: string;
+        source_id: string;
+        quote: string | null;
+        supports: boolean | null;
+        note: string | null;
+        created_at: string;
+      }>;
+      review_tasks: ContentTable<
+        {
+          id: string;
+          title: string;
+          detail: string | null;
+          kind: Database["public"]["Enums"]["review_kind"];
+          entity_type: string | null;
+          entity_id: string | null;
+          status: Database["public"]["Enums"]["review_status"];
+          priority: Database["public"]["Enums"]["priority_level"];
+          resolved_by: string | null;
+          resolved_at: string | null;
+        } & Timestamps
+      >;
+      content_revisions: ContentTable<{
+        id: number;
+        entity_type: string;
+        entity_id: string;
+        action: string;
+        diff: Json;
+        actor_id: string | null;
+        created_at: string;
+      }>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -425,6 +789,36 @@ export interface Database {
       gyro_quality: "none" | "poor" | "average" | "good" | "excellent" | "unknown";
       dominant_hand: "left" | "right" | "ambidextrous";
       grip_style: "thumbs" | "claw_3" | "claw_4" | "claw_5" | "claw_6" | "hybrid" | "other";
+      season_kind: "classic" | "casual" | "ultimate_royale" | "ranked_arena" | "metro" | "other";
+      change_type: "buff" | "nerf" | "adjustment" | "new" | "removed" | "system";
+      change_area:
+        | "weapon"
+        | "attachment"
+        | "map"
+        | "mode"
+        | "movement"
+        | "settings"
+        | "audio"
+        | "other";
+      impact_level: "unaffected" | "review_recommended" | "retest_required" | "outdated";
+      weapon_class: "ar" | "smg" | "dmr" | "sr" | "lmg" | "shotgun" | "pistol" | "other";
+      ammo_type: "556" | "762" | "9mm" | "45acp" | "12gauge" | "300magnum" | "bolt" | "other";
+      availability_kind: "ground_loot" | "airdrop" | "map_exclusive";
+      attachment_slot: "muzzle" | "grip" | "scope" | "magazine" | "stock" | "canted";
+      effect_direction: "improves" | "worsens" | "mixed" | "none" | "unknown";
+      effect_magnitude: "minor" | "moderate" | "major" | "unknown";
+      tier_letter: "S" | "A" | "B" | "C" | "D" | "F";
+      confidence_level: "high" | "medium" | "low" | "disputed" | "unverified";
+      difficulty_level: "easy" | "moderate" | "hard" | "unknown";
+      snapshot_status: "draft" | "published" | "archived";
+      source_kind: "official" | "press" | "news" | "creator" | "community" | "measured" | "editorial";
+      reliability_level: "high" | "medium" | "low";
+      claim_verdict: "supported" | "partial" | "unsupported" | "disputed" | "unverified";
+      measurement_kind: "official" | "measured" | "estimated" | "disputed";
+      evidence_kind: "official_note" | "measured" | "pro_usage" | "community" | "editorial";
+      review_kind: "verify" | "update" | "investigate";
+      review_status: "open" | "in_progress" | "done" | "dismissed";
+      priority_level: "low" | "medium" | "high";
     };
     CompositeTypes: Record<string, never>;
   };

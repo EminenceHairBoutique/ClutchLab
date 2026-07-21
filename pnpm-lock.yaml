@@ -68,6 +68,12 @@ importers:
       '@clutchlab/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@clutchlab/content':
+        specifier: workspace:*
+        version: link:../../packages/content
+      '@clutchlab/meta-engine':
+        specifier: workspace:*
+        version: link:../../packages/meta-engine
       '@clutchlab/types':
         specifier: workspace:*
         version: link:../../packages/types

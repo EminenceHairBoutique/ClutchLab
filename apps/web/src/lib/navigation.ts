@@ -28,14 +28,14 @@ export const DESTINATIONS: readonly NavDestination[] = [
     href: "/meta",
     description: "Mode-, map-, and version-specific weapon tiers",
     phase: 2,
-    live: false,
+    live: true,
   },
   {
     title: "Weapons",
     href: "/weapons",
     description: "Weapon Lab: stats, comparisons, attachments",
     phase: 2,
-    live: false,
+    live: true,
   },
   {
     title: "Settings",

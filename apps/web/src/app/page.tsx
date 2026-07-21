@@ -9,7 +9,11 @@ import {
 } from "@clutchlab/ui";
 import Link from "next/link";
 
+import { VersionIntelCard } from "@/components/meta/version-intel-card";
 import { DESTINATIONS } from "@/lib/navigation";
+
+// Version/season data comes from the store per request (countdowns, provenance).
+export const dynamic = "force-dynamic";
 
 export default function HomePage() {
   const sections = DESTINATIONS.filter((d) => d.href !== "/");
@@ -40,16 +44,9 @@ export default function HomePage() {
         <h2 id="version-intel" className="text-lg font-semibold tracking-tight">
           Version &amp; season intelligence
         </h2>
-        <Card className="mt-3">
-          <CardHeader>
-            <CardTitle>Arrives in Phase 2</CardTitle>
-            <CardDescription>
-              Current game version, Classic/Casual season, Ultimate Royale window, and patch-impact
-              alerts will appear here — each with source, verification date, and region. ClutchLab
-              shows nothing it can&apos;t back with a source.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+        <div className="mt-3">
+          <VersionIntelCard />
+        </div>
       </section>
 
       <section aria-labelledby="sections-heading">
