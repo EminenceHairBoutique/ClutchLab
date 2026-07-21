@@ -26,6 +26,33 @@ export interface MockProfileRecord {
   primaryDeviceId: string | null;
 }
 
+export interface MockSensitivityVersion {
+  id: string;
+  versionNo: number;
+  note: string | null;
+  origin: string;
+  createdAt: string;
+  values: Record<string, number>;
+}
+
+export interface MockSensitivityProfile {
+  id: string;
+  userId: string;
+  name: string;
+  activeVersionId: string;
+  versions: MockSensitivityVersion[];
+}
+
+export interface MockCode {
+  id: string;
+  userId: string;
+  profileId: string | null;
+  kind: string;
+  code: string;
+  label: string | null;
+  createdAt: string;
+}
+
 const emptyProfile = (): MockProfileRecord => ({
   displayName: null,
   handle: null,
@@ -99,6 +126,92 @@ export class MockAuthStore {
     }
     this.profiles.set(userId, { ...current, ...patch });
     return { ok: true };
+  }
+
+  // --- Sensitivity profiles (mirrors the immutable-version DB schema) ---
+
+  private sensitivityProfiles = new Map<string, MockSensitivityProfile>();
+  private codes: MockCode[] = [];
+
+  listSensitivityProfiles(userId: string): MockSensitivityProfile[] {
+    return [...this.sensitivityProfiles.values()]
+      .filter((p) => p.userId === userId)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  getSensitivityProfile(userId: string, profileId: string): MockSensitivityProfile | null {
+    const profile = this.sensitivityProfiles.get(profileId);
+    return profile && profile.userId === userId ? profile : null;
+  }
+
+  createSensitivityProfile(
+    userId: string,
+    name: string,
+    values: Record<string, number>,
+  ): { ok: true; profileId: string } | { ok: false; error: string } {
+    const exists = [...this.sensitivityProfiles.values()].some(
+      (p) => p.userId === userId && p.name === name,
+    );
+    if (exists) return { ok: false, error: "You already have a profile with that name." };
+    const profileId = randomUUID();
+    const versionId = randomUUID();
+    this.sensitivityProfiles.set(profileId, {
+      id: profileId,
+      userId,
+      name,
+      activeVersionId: versionId,
+      versions: [
+        {
+          id: versionId,
+          versionNo: 1,
+          note: "Initial values",
+          origin: "manual",
+          createdAt: new Date().toISOString(),
+          values: { ...values },
+        },
+      ],
+    });
+    return { ok: true, profileId };
+  }
+
+  /** Versions are immutable — every save appends and repoints active. */
+  appendSensitivityVersion(
+    userId: string,
+    profileId: string,
+    values: Record<string, number>,
+    note: string,
+    origin: string,
+  ): { ok: true; versionNo: number } | { ok: false; error: string } {
+    const profile = this.getSensitivityProfile(userId, profileId);
+    if (!profile) return { ok: false, error: "Profile not found." };
+    const versionNo = Math.max(...profile.versions.map((v) => v.versionNo)) + 1;
+    const versionId = randomUUID();
+    profile.versions.push({
+      id: versionId,
+      versionNo,
+      note,
+      origin,
+      createdAt: new Date().toISOString(),
+      values: { ...values },
+    });
+    profile.activeVersionId = versionId;
+    return { ok: true, versionNo };
+  }
+
+  addCode(userId: string, profileId: string | null, kind: string, code: string, label: string | null): void {
+    this.codes.push({
+      id: randomUUID(),
+      userId,
+      profileId,
+      kind,
+      code,
+      label,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  listCodes(userId: string, profileId: string | null): MockCode[] {
+    return this.codes.filter((c) => c.userId === userId && c.profileId === profileId);
   }
 
   /**

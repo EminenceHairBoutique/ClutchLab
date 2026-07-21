@@ -765,6 +765,174 @@ export interface Database {
         actor_id: string | null;
         created_at: string;
       }>;
+      setting_definitions: ContentTable<
+        {
+          slug: string;
+          name: string;
+          category: Database["public"]["Enums"]["setting_category"];
+          what_it_does: string;
+          what_it_does_not: string | null;
+          advantages: string | null;
+          disadvantages: string | null;
+          beginner_recommendation: string | null;
+          competitive_recommendation: string | null;
+          mode_notes: string | null;
+          device_impact: string | null;
+          retest_after_update: boolean;
+          data_status: Database["public"]["Enums"]["data_status"];
+          confidence: Database["public"]["Enums"]["confidence_level"];
+          last_verified_at: string | null;
+        } & SourceFields &
+          Timestamps
+      >;
+      setting_versions: ContentTable<
+        {
+          id: string;
+          setting_slug: string;
+          game_version_id: string;
+          change_note: string | null;
+          retest_required: boolean;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      sensitivity_profiles: ContentTable<
+        {
+          id: string;
+          user_id: string;
+          name: string;
+          notes: string | null;
+          active_version_id: string | null;
+        } & Timestamps
+      >;
+      sensitivity_profile_versions: ContentTable<{
+        id: string;
+        profile_id: string;
+        version_no: number;
+        note: string | null;
+        origin: string;
+        rolled_back_from: string | null;
+        created_at: string;
+      }>;
+      sensitivity_values: ContentTable<{
+        id: string;
+        version_id: string;
+        family: Database["public"]["Enums"]["sensitivity_family"];
+        scope: Database["public"]["Enums"]["sensitivity_scope"] | null;
+        value: number;
+      }>;
+      setting_codes: ContentTable<{
+        id: string;
+        user_id: string;
+        profile_id: string | null;
+        kind: Database["public"]["Enums"]["code_kind"];
+        code: string;
+        label: string | null;
+        created_at: string;
+      }>;
+      sensitivity_tests: ContentTable<
+        {
+          slug: string;
+          name: string;
+          step_order: number;
+          instructions: string;
+          metric: string;
+          adjusts_family: Database["public"]["Enums"]["sensitivity_family"] | null;
+          adjusts_scope: Database["public"]["Enums"]["sensitivity_scope"] | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & Timestamps
+      >;
+      sensitivity_test_results: ContentTable<{
+        id: string;
+        user_id: string;
+        profile_version_id: string | null;
+        test_slug: string;
+        outcome: string;
+        note: string | null;
+        created_at: string;
+      }>;
+      sensitivity_recommendations: ContentTable<{
+        id: string;
+        user_id: string;
+        result_id: string;
+        family: Database["public"]["Enums"]["sensitivity_family"] | null;
+        scope: Database["public"]["Enums"]["sensitivity_scope"] | null;
+        recommendation: Database["public"]["Enums"]["recommendation_kind"];
+        rationale: string;
+        accepted: boolean | null;
+        created_at: string;
+      }>;
+      teams: ContentTable<
+        {
+          slug: string;
+          name: string;
+          region: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      pro_profiles: ContentTable<
+        {
+          slug: string;
+          display_name: string;
+          team_slug: string | null;
+          region: string | null;
+          role: string | null;
+          device_label: string | null;
+          fps_tier: string | null;
+          finger_count: number | null;
+          grip_style: Database["public"]["Enums"]["grip_style"] | null;
+          gyro_mode: string | null;
+          aim_assist: string | null;
+          preferred_weapons: string[];
+          main_modes: string[];
+          verification: Database["public"]["Enums"]["verification_level"];
+          game_version_label: string | null;
+          stale_reason: string | null;
+          is_stale: boolean;
+          data_status: Database["public"]["Enums"]["data_status"];
+          confidence: Database["public"]["Enums"]["confidence_level"];
+          last_verified_at: string | null;
+          notes: string | null;
+        } & SourceFields &
+          Timestamps
+      >;
+      pro_team_history: ContentTable<{
+        id: string;
+        pro_slug: string;
+        team_slug: string | null;
+        joined_on: string | null;
+        left_on: string | null;
+        data_status: Database["public"]["Enums"]["data_status"];
+        source_name: string | null;
+        created_at: string;
+      }>;
+      pro_settings: ContentTable<
+        {
+          id: string;
+          pro_slug: string;
+          family: Database["public"]["Enums"]["sensitivity_family"];
+          scope: Database["public"]["Enums"]["sensitivity_scope"] | null;
+          value: number;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
+      verification_sources: ContentTable<{
+        id: string;
+        pro_slug: string;
+        source_id: string;
+        note: string | null;
+        created_at: string;
+      }>;
+      verification_reviews: ContentTable<{
+        id: string;
+        pro_slug: string;
+        reviewer_id: string | null;
+        outcome: Database["public"]["Enums"]["verification_level"];
+        note: string | null;
+        created_at: string;
+      }>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -819,6 +987,41 @@ export interface Database {
       review_kind: "verify" | "update" | "investigate";
       review_status: "open" | "in_progress" | "done" | "dismissed";
       priority_level: "low" | "medium" | "high";
+      sensitivity_family: "camera" | "ads" | "gyro" | "ads_gyro" | "free_look";
+      sensitivity_scope:
+        | "no_scope_tpp"
+        | "no_scope_fpp"
+        | "red_dot"
+        | "x2"
+        | "x3"
+        | "x4"
+        | "x6"
+        | "x8";
+      setting_category:
+        | "aiming"
+        | "controls"
+        | "gyroscope"
+        | "graphics"
+        | "audio"
+        | "gameplay"
+        | "accessibility";
+      recommendation_kind:
+        | "keep"
+        | "increase_small"
+        | "increase_medium"
+        | "decrease_small"
+        | "decrease_medium"
+        | "retest";
+      verification_level:
+        | "player_verified"
+        | "team_verified"
+        | "direct_visual"
+        | "source_verified"
+        | "community_submitted"
+        | "unverified"
+        | "expired"
+        | "sample";
+      code_kind: "sensitivity" | "controls";
     };
     CompositeTypes: Record<string, never>;
   };

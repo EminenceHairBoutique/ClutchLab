@@ -13,6 +13,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@clutchlab/calibration": "workspace:*",
     "@clutchlab/config": "workspace:*",
     "@clutchlab/content": "workspace:*",
     "@clutchlab/meta-engine": "workspace:*",

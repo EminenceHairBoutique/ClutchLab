@@ -65,6 +65,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@clutchlab/calibration':
+        specifier: workspace:*
+        version: link:../../packages/calibration
       '@clutchlab/config':
         specifier: workspace:*
         version: link:../../packages/config
