@@ -1,3 +1,4 @@
+import { CALIBRATION_STEPS } from "@clutchlab/calibration";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -431,6 +432,89 @@ sections.push(
     rows: B.reviewTasks.map((t) => [
       stableId("review_task", t.key), t.title, t.detail, t.kind, t.entityType, t.entityId, "open", t.priority,
     ]),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// Phase 3: settings library, calibration test catalog, sample pro vault
+// ---------------------------------------------------------------------------
+
+sections.push(
+  upsert({
+    table: "setting_definitions",
+    columns: [
+      "slug", "name", "category", "what_it_does", "what_it_does_not", "advantages",
+      "disadvantages", "beginner_recommendation", "competitive_recommendation", "mode_notes",
+      "device_impact", "retest_after_update", "data_status", "confidence", "source_name",
+      "source_url", "source_date",
+    ],
+    conflictTarget: "slug",
+    rows: B.settingExplainers.map((s): SqlValue[] => [
+      s.slug, s.name, s.category, s.whatItDoes, s.whatItDoesNot, s.advantages,
+      s.disadvantages, s.beginnerRec, s.competitiveRec, s.modeNotes,
+      s.deviceImpact, s.retestAfterUpdate, "unverified", "low",
+      "ClutchLab editorial baseline (pending verification)", null, "2026-07-21",
+    ]),
+  }),
+);
+
+sections.push(
+  upsert({
+    table: "sensitivity_tests",
+    columns: [
+      "slug", "name", "step_order", "instructions", "metric",
+      "adjusts_family", "adjusts_scope", "data_status",
+    ],
+    conflictTarget: "slug",
+    rows: CALIBRATION_STEPS.map((step): SqlValue[] => [
+      step.slug, step.name, step.order, step.instructions, step.metric,
+      step.adjusts?.family ?? null, step.adjusts?.scope ?? null, "unverified",
+    ]),
+  }),
+);
+
+sections.push(
+  upsert({
+    table: "teams",
+    columns: ["slug", "name", "region", "data_status", "source_name"],
+    conflictTarget: "slug",
+    rows: B.sampleTeams.map((t): SqlValue[] => [
+      t.slug, t.name, t.region, "sample", "ClutchLab sample data (fictional)",
+    ]),
+  }),
+);
+
+sections.push(
+  upsert({
+    table: "pro_profiles",
+    columns: [
+      "slug", "display_name", "team_slug", "region", "role", "device_label", "fps_tier",
+      "finger_count", "grip_style", "gyro_mode", "aim_assist", "preferred_weapons",
+      "main_modes", "verification", "game_version_label", "data_status", "confidence",
+      "source_name", "notes",
+    ],
+    conflictTarget: "slug",
+    rows: B.samplePros.map((p): SqlValue[] => [
+      p.slug, p.displayName, p.teamSlug, p.region, p.role, p.deviceLabel, p.fpsTier,
+      p.fingerCount, p.gripStyle, p.gyroMode, p.aimAssist, p.preferredWeapons,
+      p.mainModes, "sample", B.version.version, "sample", "unverified",
+      "ClutchLab sample data (fictional)", p.notes,
+    ]),
+  }),
+);
+
+sections.push(
+  upsert({
+    table: "pro_settings",
+    columns: ["id", "pro_slug", "family", "scope", "value", "data_status", "source_name"],
+    conflictTarget: "id",
+    rows: B.samplePros.flatMap((p) =>
+      p.values.map((val): SqlValue[] => [
+        stableId("pro_setting", `${p.slug}:${val.family}:${val.scope ?? "-"}`),
+        p.slug, val.family, val.scope, val.value, "sample",
+        "ClutchLab sample data (fictional)",
+      ]),
+    ),
   }),
 );
 

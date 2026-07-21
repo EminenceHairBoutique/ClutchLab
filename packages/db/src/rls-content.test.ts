@@ -52,7 +52,8 @@ describe.runIf(available)("content schema RLS + seed integrity", () => {
     const tables = [
       "game_versions", "seasons", "patches", "patch_changes", "modes", "maps",
       "map_versions", "weapons", "weapon_versions", "attachments", "attachment_effects",
-      "weapon_tiers", "claims",
+      "weapon_tiers", "claims", "setting_definitions", "sensitivity_tests", "teams",
+      "pro_profiles", "pro_settings",
     ];
     for (const table of tables) {
       const rows = await db.sql.unsafe(
@@ -147,6 +148,24 @@ describe.runIf(available)("content schema RLS + seed integrity", () => {
     const ace = impacts.find((i) => i.entity_id === "ace32");
     expect(ace?.impact).toBe("retest_required");
     expect(impacts.filter((i) => i.impact === "review_recommended").length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("seed integrity: every seeded pro profile is verification='sample'", async () => {
+    const rows = await db.sql`select count(*)::int as n from public.pro_profiles
+                              where slug like 'sample-%' and verification <> 'sample'`;
+    expect(rows[0]?.n).toBe(0);
+    const total = await db.sql`select count(*)::int as n from public.pro_profiles where slug like 'sample-%'`;
+    expect(total[0]?.n).toBeGreaterThanOrEqual(10);
+  });
+
+  it("settings library and calibration steps are seeded and public", async () => {
+    const settings = await db.asAnon((tx) => tx`select slug from public.setting_definitions`);
+    expect(settings.length).toBeGreaterThanOrEqual(30);
+    const steps = await db.asAnon(
+      (tx) => tx`select slug from public.sensitivity_tests order by step_order`,
+    );
+    expect(steps.length).toBeGreaterThanOrEqual(14);
+    expect(steps[0]?.slug).toBe("baseline_setup");
   });
 
   it("claims carry linked evidence from the sources table", async () => {

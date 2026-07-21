@@ -13,6 +13,7 @@
     "generate": "tsx scripts/generate-sql.ts"
   },
   "dependencies": {
+    "@clutchlab/calibration": "workspace:*",
     "@clutchlab/meta-engine": "workspace:*",
     "zod": "catalog:"
   },

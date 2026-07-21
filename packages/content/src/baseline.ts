@@ -11,6 +11,8 @@ import { ATTACHMENTS } from "./catalog/attachments";
 import { CLAIMS, REVIEW_TASKS } from "./catalog/claims";
 import { MAPS } from "./catalog/maps";
 import { MODES } from "./catalog/modes";
+import { SAMPLE_PROS, SAMPLE_TEAMS } from "./catalog/pros";
+import { SETTING_EXPLAINERS } from "./catalog/settings";
 import { SOURCES } from "./catalog/sources";
 import { GAME_VERSION_45, PATCH_45, SEASONS } from "./catalog/versions";
 import { TIERABLE_WEAPONS, WEAPONS } from "./catalog/weapons";
@@ -69,6 +71,9 @@ export const CONTENT_BASELINE = {
   sources: SOURCES,
   claims: CLAIMS,
   reviewTasks: REVIEW_TASKS,
+  settingExplainers: SETTING_EXPLAINERS,
+  sampleTeams: SAMPLE_TEAMS,
+  samplePros: SAMPLE_PROS,
   methodology: METHODOLOGY,
   modeContexts: MODE_CONTEXTS,
   snapshotSlug: SNAPSHOT_SLUG,

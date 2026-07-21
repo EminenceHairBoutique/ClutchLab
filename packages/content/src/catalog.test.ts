@@ -91,6 +91,50 @@ describe("catalog validity", () => {
   });
 });
 
+describe("phase 3 catalog", () => {
+  it("ships at least 30 settings explainers (spec §21)", async () => {
+    const { SETTING_EXPLAINERS, settingExplainerSchema } = await import("./catalog/settings");
+    expect(SETTING_EXPLAINERS.length).toBeGreaterThanOrEqual(30);
+    for (const s of SETTING_EXPLAINERS) {
+      expect(() => settingExplainerSchema.parse(s)).not.toThrow();
+    }
+    const slugs = SETTING_EXPLAINERS.map((s) => s.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+  });
+
+  it("ships at least 10 pro profiles, all explicitly fictional samples", async () => {
+    const { SAMPLE_PROS, proProfileSchema } = await import("./catalog/pros");
+    expect(SAMPLE_PROS.length).toBeGreaterThanOrEqual(10);
+    for (const p of SAMPLE_PROS) {
+      expect(() => proProfileSchema.parse(p)).not.toThrow();
+      expect(p.slug.startsWith("sample-"), p.slug).toBe(true);
+      expect(p.notes).toMatch(/fictional/i);
+      for (const value of p.values) {
+        expect(value.value).toBeGreaterThanOrEqual(1);
+        expect(value.value).toBeLessThanOrEqual(300);
+      }
+    }
+  });
+
+  it("pro team references resolve to sample teams", async () => {
+    const { SAMPLE_PROS, SAMPLE_TEAMS } = await import("./catalog/pros");
+    const teamSlugs = new Set(SAMPLE_TEAMS.map((t) => t.slug));
+    for (const p of SAMPLE_PROS) {
+      if (p.teamSlug) expect(teamSlugs.has(p.teamSlug), p.slug).toBe(true);
+    }
+  });
+
+  it("pro preferred weapons reference the real weapon catalog", async () => {
+    const { SAMPLE_PROS } = await import("./catalog/pros");
+    const weaponSlugs = new Set(B.weapons.map((w) => w.slug));
+    for (const p of SAMPLE_PROS) {
+      for (const weapon of p.preferredWeapons) {
+        expect(weaponSlugs.has(weapon), `${p.slug} → ${weapon}`).toBe(true);
+      }
+    }
+  });
+});
+
 describe("baseline tiers", () => {
   const rows = computeBaselineTiers();
 

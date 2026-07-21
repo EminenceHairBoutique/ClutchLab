@@ -10,6 +10,17 @@ export { ATTACHMENTS } from "./catalog/attachments";
 export { CLAIMS, REVIEW_TASKS } from "./catalog/claims";
 export { MAPS } from "./catalog/maps";
 export { MODES } from "./catalog/modes";
+export {
+  SAMPLE_PROS,
+  SAMPLE_TEAMS,
+  proProfileSchema,
+  type ProProfileRecord,
+} from "./catalog/pros";
+export {
+  SETTING_EXPLAINERS,
+  settingExplainerSchema,
+  type SettingExplainer,
+} from "./catalog/settings";
 export { SOURCES } from "./catalog/sources";
 export { GAME_VERSION_45, PATCH_45, SEASONS } from "./catalog/versions";
 export { TIERABLE_WEAPONS, WEAPONS } from "./catalog/weapons";
