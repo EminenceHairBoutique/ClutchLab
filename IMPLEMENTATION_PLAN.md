@@ -1,5 +1,9 @@
 # IMPLEMENTATION_PLAN
 
+> **Status (2026-07-22): all nine phases are built and gate-green.** This file remains the
+> phase map; PROGRESS.md carries per-phase results, decisions, and the credential blockers
+> that separate demo mode from production.
+
 Concise execution map from `ClutchLab_v3.md` (§20 phases, §24 loop). Detail lives in the spec;
 this file records *how* each phase lands in this codebase. Status tracking is in `PROGRESS.md`.
 

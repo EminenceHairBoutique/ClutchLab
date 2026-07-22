@@ -18,7 +18,7 @@ Persistent progress ledger per spec §0.1.2. A fresh session must be able to res
 | 6 | Community + verification | **done** (2026-07-22, exit gate green) |
 | 7 | AI Coach | **done** (2026-07-22, exit gate green) |
 | 8 | Billing + marketplace | **done** (2026-07-22, exit gate green) |
-| 9 | Native mobile (Expo) | not started |
+| 9 | Native mobile (Expo) | **done** (2026-07-22, exit gate green — device run pending, see MOBILE.md) |
 
 Exit gate for every phase (spec §20): `pnpm lint` → `pnpm typecheck` → `pnpm test` → `pnpm build`
 all green, new routes render without console errors, smoke tests exist, docs updated, committed.
@@ -93,6 +93,9 @@ tests, all 11 routes console-error-free on a mobile viewport).
 | D26 | 2026-07-22 | Sample marketplace coaches live in the MOCK store only (labeled, not bookable); the real DB gets no seeded coaches | coach_profiles FKs auth users — seeding fake humans into a real Supabase would pollute auth and imply real people. Demo mode stays rich; production stays clean. |
 | D27 | 2026-07-22 | Coach verification is trigger-protected in Postgres (only editor+ can flip `verified`) | RLS alone can't do column-level protection cleanly; the trigger makes self-verification impossible even through the owner-update policy. |
 | D28 | 2026-07-22 | Mock-only affordance extended: `admin-` signup emails get the admin role | Payout workflow (money) is admin-gated above the editor gate; needs to be demoable + e2e-testable without a database. Same safety argument as D21. |
+| D29 | 2026-07-22 | Design tokens exported as JS (`@clutchlab/ui/tokens`) with a unit test asserting exact equality against theme.css | Mobile can't consume CSS custom properties; a drift-guard test beats generation tooling at this scale. Web CSS stays the source of truth. |
+| D30 | 2026-07-22 | Mobile navigation = four tabs on local state + expo-linking; no navigation library yet | Flat screen graph doesn't justify expo-router's native-module tail (screens/gesture-handler/reanimated) in an environment where nothing native can run; deep-link mapping is isolated in tabForUrl() so graduating later is cheap. |
+| D31 | 2026-07-22 | Mobile ships reader-first: account features link to the web app; auth/uploads/push are documented milestones in MOBILE.md | Honest-placeholder protocol: real Supabase/EAS credentials and a physical device don't exist here; shipping unverifiable auth UI would be pretend-complete. The bundled-catalog readers are fully real and offline-capable. |
 
 ## Blockers (with exact unblocking steps)
 
@@ -277,11 +280,40 @@ tests, all 11 routes console-error-free on a mobile viewport).
 15 billing + 78 db/RLS/worker + 58 web) · `APP_ENV=test pnpm build` ✅ ·
 `APP_ENV=test pnpm e2e` ✅ (47 tests).
 
-## Next steps (exact)
+## Phase 9 — Native mobile (done, 2026-07-22)
 
-1. **Phase 9 (Native mobile):** Expo app in `apps/mobile` sharing types/design tokens;
-   read-mostly MVP (meta, settings viewer, training list, coach report viewer) against the
-   same Supabase backend; push notifications + offline caching + deep links per spec §20
-   Phase 9. Uploads from mobile reuse the signed-URL flow.
-2. Post-phase hardening backlog: Stripe Connect payouts, ffmpeg worker image, Supabase
-   Storage bucket provisioning, real OAuth creds — all tracked in Blockers.
+- `apps/mobile`: Expo SDK 57 (React 19.2 / RN 0.86 — pnpm isolates them from the web app's
+  React 19.1), TS strict, shared eslint preset. Four-tab reader MVP: Home (version 4.5
+  intelligence with data-status/confidence/source labeling + independent-product and
+  no-automation statements), Meta (tier list per mode from the SAME versioned engine and
+  bundled baseline as the web/seed), Train (drills grouped by skill + plans), More (web
+  links for account features, honest notifications state, privacy statement).
+- Shared design tokens: `@clutchlab/ui/tokens` (react-free) with a unit test that parses
+  `theme.css` and fails on any drift (web CSS stays the source of truth).
+- Deep links: `clutchlab://<tab>` + `https://clutchlab.app/...` (Android intent filter
+  configured) resolve through unit-tested `tabForUrl()`; web-only sections land on the
+  closest tab; account features open the web app until mobile sign-in ships.
+- Offline: reader screens consume the bundled catalog — fully offline by construction.
+- Verification WITHOUT a device (none exists here): lint + typecheck + 8 unit tests +
+  `expo export` Metro-bundling ios+android to Hermes bytecode (624 modules). On-device Expo
+  Go run, push notifications (EAS credentials), and mobile auth/uploads are documented as
+  the next milestones in MOBILE.md — interfaces and server pieces already exist.
+
+**Exit gate (repo root, 2026-07-22):** `pnpm lint` ✅ (11 workspaces) · `pnpm typecheck` ✅ ·
+`pnpm test` ✅ (260 tests: 12 config + 12 ui + 16 meta-engine + 12 calibration + 30 content +
+19 coach + 15 billing + 8 mobile + 78 db/RLS/worker + 58 web) · `APP_ENV=test pnpm build` ✅
+(Next.js production build + expo export) · `APP_ENV=test pnpm e2e` ✅ (47 tests).
+
+## Project state: all nine phases complete
+
+Every §20 phase is built, tested, and gate-green in demo (mock) mode. What separates this
+from production is credentials, not code — each blocker below lists its exact unblocking
+steps. The spec's hard rules are enforced in schema, tests, prompts, and copy throughout:
+no gameplay automation, no fabricated data (everything unverifiable is stored `unverified`/
+`sample` in the database), no "zero recoil" claims, no copyrighted assets, no client-side
+secrets, RLS on every user-owned table.
+
+**Hardening backlog (post-phase, credential-dependent):** connect Supabase (+ `recordings`
+bucket) and run migrations/seed → real auth + RLS in production; Anthropic key + model +
+ffmpeg worker image → real analyses; Stripe (+ Connect) → real billing + payouts; EAS
+credentials → mobile device builds + push; Sentry DSN; Google/Apple OAuth.

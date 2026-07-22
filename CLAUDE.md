@@ -54,7 +54,7 @@ supabase/tests        Auth shim for the local harness (never run against real Su
 packages/calibration  §5.7 sensitivity model + 14-step guided calibration flow
 packages/coach        §5.13 AI provider abstraction, two-pass pipeline, queue worker (AI_COACH.md)
 packages/billing      §14 entitlements matrix + SDK-free Stripe provider + fee split
-apps/mobile           Phase 9 (Expo)
+apps/mobile           Expo reader app: shared tokens/catalog, deep links (MOBILE.md)
 ```
 
 After editing `packages/content`, run `pnpm --filter @clutchlab/content generate` and commit the
