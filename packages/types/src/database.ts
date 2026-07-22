@@ -1331,6 +1331,31 @@ export interface Database {
         body: string | null;
         created_at: string;
       }>;
+      notification_preferences: ContentTable<{
+        user_id: string;
+        kind: Database["public"]["Enums"]["notification_kind"];
+        enabled: boolean;
+        updated_at: string;
+      }>;
+      notifications: ContentTable<{
+        id: string;
+        user_id: string;
+        kind: Database["public"]["Enums"]["notification_kind"];
+        title: string;
+        body: string;
+        link_path: string | null;
+        read_at: string | null;
+        created_at: string;
+      }>;
+      push_subscriptions: ContentTable<{
+        id: string;
+        user_id: string;
+        endpoint: string;
+        p256dh: string;
+        auth: string;
+        user_agent: string | null;
+        created_at: string;
+      }>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -1482,6 +1507,19 @@ export interface Database {
         | "disputed";
       order_status: "pending_payment" | "paid" | "refunded" | "disputed";
       payout_status: "not_due" | "pending" | "paid";
+      notification_kind:
+        | "new_version"
+        | "new_season"
+        | "weapon_changed"
+        | "attachment_changed"
+        | "pro_updated"
+        | "profile_stale"
+        | "ultimate_royale_start"
+        | "ranked_arena_start"
+        | "daily_training"
+        | "weekly_report"
+        | "coach_response"
+        | "community_reply";
     };
     CompositeTypes: Record<string, never>;
   };

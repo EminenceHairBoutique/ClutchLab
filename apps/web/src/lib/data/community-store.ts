@@ -29,6 +29,8 @@ export type CommunityResult<T> = { ok: true; data: T } | { ok: false; error: str
 export interface CommunityStore {
   listPosts(viewerId: string | null): Promise<PostSummary[]>;
   getPost(postId: string, viewerId: string | null): Promise<PostDetail | null>;
+  /** Author id for reply notifications (null when the post isn't visible). */
+  getPostAuthor(postId: string): Promise<string | null>;
   createPost(
     userId: string,
     authorLabel: string,
@@ -54,6 +56,10 @@ export interface CommunityStore {
 }
 
 class MockCommunityStore implements CommunityStore {
+  async getPostAuthor(postId: string): Promise<string | null> {
+    return getMockAuthStore().getPost(postId, null)?.authorId ?? null;
+  }
+
   async listPosts(viewerId: string | null): Promise<PostSummary[]> {
     return getMockAuthStore()
       .listPosts(viewerId)
@@ -133,6 +139,16 @@ class MockCommunityStore implements CommunityStore {
 }
 
 class SupabaseCommunityStore implements CommunityStore {
+  async getPostAuthor(postId: string): Promise<string | null> {
+    const supabase = await createServerSupabase();
+    const { data } = await supabase
+      .from("posts")
+      .select("author_id")
+      .eq("id", postId)
+      .maybeSingle();
+    return data?.author_id ?? null;
+  }
+
   async listPosts(viewerId: string | null): Promise<PostSummary[]> {
     const supabase = await createServerSupabase();
     const { data, error } = await supabase

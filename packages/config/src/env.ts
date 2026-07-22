@@ -44,6 +44,10 @@ const rawSchema = z.object({
   /** Price IDs come from config, never hard-coded. */
   STRIPE_PRICE_PRO: z.string().min(3).optional(),
   STRIPE_PRICE_ELITE: z.string().min(3).optional(),
+  /** Web push (§5.18). Generate with `npx web-push generate-vapid-keys`. */
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(10).optional(),
+  VAPID_PRIVATE_KEY: z.string().min(10).optional(),
+  VAPID_SUBJECT: z.string().regex(/^(mailto:|https:)/).optional(),
 });
 
 export type ServerEnv = z.infer<typeof rawSchema> & {
@@ -100,6 +104,13 @@ export function parseServerEnv(source: EnvSource): ServerEnv {
           "(price IDs come from config, never code)",
       );
     }
+  }
+
+  const vapidParts = [env.NEXT_PUBLIC_VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY, env.VAPID_SUBJECT];
+  if (vapidParts.some(Boolean) && !vapidParts.every(Boolean)) {
+    issues.push(
+      "Web push needs all of NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, and VAPID_SUBJECT",
+    );
   }
 
   if (issues.length > 0) {

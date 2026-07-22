@@ -273,6 +273,26 @@ export interface MockMarketplaceReview {
   createdAt: string;
 }
 
+export interface MockNotification {
+  id: string;
+  userId: string;
+  kind: string;
+  title: string;
+  body: string;
+  linkPath: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface MockPushSubscription {
+  id: string;
+  userId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  userAgent: string | null;
+}
+
 const emptyProfile = (): MockProfileRecord => ({
   displayName: null,
   handle: null,
@@ -697,6 +717,77 @@ export class MockAuthStore {
     return this.drillResults.filter(
       (r) => r.userId === userId && (sessionId === undefined || r.sessionId === sessionId),
     );
+  }
+
+  // --- Notifications (§5.18: opt-in prefs, inbox, push subscriptions) ---
+
+  private notificationPrefs = new Map<string, Set<string>>();
+  private notificationRows: MockNotification[] = [];
+  private pushSubs: MockPushSubscription[] = [];
+
+  isNotificationEnabled(userId: string, kind: string): boolean {
+    return this.notificationPrefs.get(userId)?.has(kind) ?? false;
+  }
+
+  setNotificationPreference(userId: string, kind: string, enabled: boolean): void {
+    const set = this.notificationPrefs.get(userId) ?? new Set<string>();
+    if (enabled) set.add(kind);
+    else set.delete(kind);
+    this.notificationPrefs.set(userId, set);
+  }
+
+  listNotificationPreferences(userId: string): Set<string> {
+    return new Set(this.notificationPrefs.get(userId) ?? []);
+  }
+
+  addNotification(
+    userId: string,
+    kind: string,
+    title: string,
+    body: string,
+    linkPath: string | null,
+  ): void {
+    this.notificationRows.push({
+      id: randomUUID(),
+      userId,
+      kind,
+      title,
+      body,
+      linkPath,
+      readAt: null,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  listNotifications(userId: string): MockNotification[] {
+    return this.notificationRows
+      .filter((n) => n.userId === userId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  markNotificationsRead(userId: string, id?: string): void {
+    const now = new Date().toISOString();
+    for (const n of this.notificationRows) {
+      if (n.userId === userId && (id === undefined || n.id === id) && n.readAt === null) {
+        n.readAt = now;
+      }
+    }
+  }
+
+  savePushSubscription(
+    userId: string,
+    sub: { endpoint: string; p256dh: string; auth: string; userAgent: string | null },
+  ): void {
+    this.pushSubs = this.pushSubs.filter((s) => s.endpoint !== sub.endpoint);
+    this.pushSubs.push({ id: randomUUID(), userId, ...sub });
+  }
+
+  deletePushSubscription(userId: string, endpoint: string): void {
+    this.pushSubs = this.pushSubs.filter((s) => !(s.userId === userId && s.endpoint === endpoint));
+  }
+
+  listPushSubscriptions(userId: string): MockPushSubscription[] {
+    return this.pushSubs.filter((s) => s.userId === userId);
   }
 
   // --- Billing (mock plan state; Supabase mode reads subscriptions) ---

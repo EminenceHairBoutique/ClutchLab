@@ -77,6 +77,18 @@ dev/test only — production billing actions refuse). To go real:
 4. Marketplace payouts additionally need Stripe Connect (not yet wired — the
    `/admin/payouts` ledger tracks what is owed meanwhile).
 
+## Web push (notifications)
+
+The §5.18 in-app inbox works with zero configuration. To also deliver push:
+
+1. `npx web-push generate-vapid-keys` → set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+   `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` (a `mailto:` contact).
+2. Users enable push per device on `/notifications`. On iPhone this requires the app to be
+   installed first (Safari → Share → **Add to Home Screen**) — iOS only grants push to
+   installed web apps (16.4+).
+
+Everything is opt-in per kind; nothing fires until the user turns a kind on.
+
 ## Error monitoring
 
 Set `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN`. Without them Sentry code stays dormant (and mostly

@@ -6,6 +6,7 @@ import type { Enums } from "@clutchlab/types";
 import { authMode } from "@/lib/auth/gateway";
 import { getMockAuthStore } from "@/lib/auth/mock-store";
 import { createServerSupabase, createServiceSupabase } from "@/lib/auth/supabase-server";
+import { notify } from "@/lib/notifications/notify";
 
 /**
  * Coach marketplace store (spec §5.17). Mock mode runs the full loop
@@ -240,6 +241,11 @@ class MockMarketplaceStore implements MarketplaceStore {
       platformFeeCents: fees.platformFeeCents,
       coachNetCents: fees.coachNetCents,
     });
+    await notify(service.coachId, "coach_response", {
+      title: "New booking request",
+      body: `A player requested "${service.title}" — accept or decline it in your bookings.`,
+      path: "/coach/bookings",
+    });
     return { ok: true, data: { bookingId } };
   }
 
@@ -278,11 +284,37 @@ class MockMarketplaceStore implements MarketplaceStore {
   }
 
   async respondToBooking(coachId: string, bookingId: string, accept: boolean): Promise<boolean> {
-    return getMockAuthStore().respondToBooking(coachId, bookingId, accept);
+    const store = getMockAuthStore();
+    const ok = store.respondToBooking(coachId, bookingId, accept);
+    if (ok) {
+      const booking = store.getBooking(bookingId);
+      if (booking) {
+        await notify(booking.playerId, "coach_response", {
+          title: accept ? "Booking accepted" : "Booking declined",
+          body: accept
+            ? "Your coach accepted the session — the deliverable lands in your bookings."
+            : "The coach declined this request; the mock payment was refunded.",
+          path: "/coach/bookings",
+        });
+      }
+    }
+    return ok;
   }
 
   async deliverBooking(coachId: string, bookingId: string, deliverable: string): Promise<boolean> {
-    return getMockAuthStore().deliverBooking(coachId, bookingId, deliverable);
+    const store = getMockAuthStore();
+    const ok = store.deliverBooking(coachId, bookingId, deliverable);
+    if (ok) {
+      const booking = store.getBooking(bookingId);
+      if (booking) {
+        await notify(booking.playerId, "coach_response", {
+          title: "Your coaching session was delivered",
+          body: "The written deliverable is ready — confirm delivery to release the payout.",
+          path: "/coach/bookings",
+        });
+      }
+    }
+    return ok;
   }
 
   async completeBooking(playerId: string, bookingId: string): Promise<boolean> {
@@ -495,6 +527,11 @@ class SupabaseMarketplaceStore implements MarketplaceStore {
       .select("id")
       .single();
     if (error) return { ok: false, error: error.message };
+    await notify(service.coach_id, "coach_response", {
+      title: "New booking request",
+      body: "A player requested one of your services — accept or decline it in your bookings.",
+      path: "/coach/bookings",
+    });
 
     // Money ledger is service-role territory. Real payments need Stripe
     // Connect (see PROGRESS blockers); the pending order records the intent.
@@ -567,8 +604,18 @@ class SupabaseMarketplaceStore implements MarketplaceStore {
       .eq("id", bookingId)
       .eq("coach_id", coachId)
       .eq("status", "requested")
-      .select("id");
-    return !error && data.length > 0;
+      .select("id, player_id");
+    const ok = !error && data.length > 0;
+    if (ok && data[0]) {
+      await notify(data[0].player_id, "coach_response", {
+        title: accept ? "Booking accepted" : "Booking declined",
+        body: accept
+          ? "Your coach accepted the session — the deliverable lands in your bookings."
+          : "The coach declined this request.",
+        path: "/coach/bookings",
+      });
+    }
+    return ok;
   }
 
   async deliverBooking(coachId: string, bookingId: string, deliverable: string): Promise<boolean> {
@@ -579,8 +626,16 @@ class SupabaseMarketplaceStore implements MarketplaceStore {
       .eq("id", bookingId)
       .eq("coach_id", coachId)
       .eq("status", "accepted")
-      .select("id");
-    return !error && data.length > 0;
+      .select("id, player_id");
+    const ok = !error && data.length > 0;
+    if (ok && data[0]) {
+      await notify(data[0].player_id, "coach_response", {
+        title: "Your coaching session was delivered",
+        body: "The written deliverable is ready — confirm delivery to release the payout.",
+        path: "/coach/bookings",
+      });
+    }
+    return ok;
   }
 
   async completeBooking(playerId: string, bookingId: string): Promise<boolean> {

@@ -141,6 +141,15 @@ export async function processNextJob(deps: WorkerDeps): Promise<JobOutcome> {
                set status = 'succeeded', finished_at = now(), error = null
                where id = ${job.id}`;
       await tx`update public.video_uploads set status = 'complete' where id = ${upload.id}`;
+      // §5.18 strictly opt-in: the row only lands if the user enabled the kind.
+      await tx`insert into public.notifications (user_id, kind, title, body, link_path)
+               select ${job.userId}, 'coach_response', 'Your coaching report is ready',
+                      ${`Analysis of "${upload.label}" finished — open the report for the top mistakes and drills.`},
+                      ${`/coach/reports/${reportId}`}
+               where exists (
+                 select 1 from public.notification_preferences p
+                 where p.user_id = ${job.userId} and p.kind = 'coach_response' and p.enabled
+               )`;
     });
     log(`job ${job.id}: succeeded (${result.observations.length} observations)`);
     return "succeeded";

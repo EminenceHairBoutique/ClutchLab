@@ -19,6 +19,7 @@ import { z } from "zod";
 import { authMode } from "@/lib/auth/gateway";
 import { getMockAuthStore } from "@/lib/auth/mock-store";
 import { createServerSupabase } from "@/lib/auth/supabase-server";
+import { notify } from "@/lib/notifications/notify";
 
 import { getUserEntitlements } from "./billing-store";
 
@@ -189,7 +190,7 @@ class MockCoachStore implements CoachStore {
     };
     try {
       const result = await runAnalysis(new MockCoachProvider(), context);
-      store.completeAnalysisJob(jobId, {
+      const reportId = store.completeAnalysisJob(jobId, {
         observations: result.observations,
         report: {
           executiveSummary: result.draft.executiveSummary,
@@ -205,6 +206,13 @@ class MockCoachStore implements CoachStore {
           reason: "Assigned from the mistakes identified in this analysis.",
         })),
       });
+      if (reportId) {
+        await notify(userId, "coach_response", {
+          title: "Your coaching report is ready",
+          body: `Analysis of "${upload.label}" finished — open the report for the top mistakes and drills.`,
+          path: `/coach/reports/${reportId}`,
+        });
+      }
     } catch (error) {
       store.failAnalysisJob(jobId, error instanceof Error ? error.message : String(error));
     }
@@ -293,7 +301,25 @@ class MockCoachStore implements CoachStore {
     reportId: string,
     decision: "published" | "rejected",
   ): Promise<boolean> {
-    return getMockAuthStore().reviewCoachReport(editorId, reportId, decision);
+    const store = getMockAuthStore();
+    const ok = store.reviewCoachReport(editorId, reportId, decision);
+    if (ok) {
+      const report = store.getCoachReport(reportId);
+      if (report) {
+        await notify(report.userId, "coach_response", {
+          title:
+            decision === "published"
+              ? "Your report passed human review"
+              : "Your report was pulled after review",
+          body:
+            decision === "published"
+              ? "An editor spot-checked your AI coaching report and published it."
+              : "An editor flagged your AI coaching report as below standard — a regenerated analysis may follow.",
+          path: `/coach/reports/${reportId}`,
+        });
+      }
+    }
+    return ok;
   }
 }
 
@@ -565,8 +591,22 @@ class SupabaseCoachStore implements CoachStore {
       })
       .eq("id", reportId)
       .eq("review_status", "pending_review")
-      .select("id");
-    return !error && data.length > 0;
+      .select("id, user_id");
+    const ok = !error && data.length > 0;
+    if (ok && data[0]) {
+      await notify(data[0].user_id, "coach_response", {
+        title:
+          decision === "published"
+            ? "Your report passed human review"
+            : "Your report was pulled after review",
+        body:
+          decision === "published"
+            ? "An editor spot-checked your AI coaching report and published it."
+            : "An editor flagged your AI coaching report as below standard — a regenerated analysis may follow.",
+        path: `/coach/reports/${reportId}`,
+      });
+    }
+    return ok;
   }
 }
 
