@@ -57,7 +57,12 @@ export default async function TrainingPage() {
       {summary && (
         <Card>
           <CardHeader>
-            <CardTitle>Your last 7 days</CardTitle>
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle>Your last 7 days</CardTitle>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/training/reports">Reports &amp; streak</Link>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div>

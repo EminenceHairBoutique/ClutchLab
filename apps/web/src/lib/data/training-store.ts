@@ -51,6 +51,33 @@ export interface WeeklySummary {
   minutesCompleted: number;
 }
 
+/** §5.14 report cadence — daily/weekly/monthly windows + practice streak. */
+export interface TrainingReports {
+  daily: WeeklySummary;
+  weekly: WeeklySummary;
+  monthly: WeeklySummary;
+  /** Consecutive days (ending today or yesterday) with logged practice. */
+  streakDays: number;
+}
+
+/** Streak from activity dates (YYYY-MM-DD): counts back from today, or from
+ * yesterday when today has no practice yet — an unbroken streak stays alive
+ * until a full day is missed. */
+export function computeStreak(activityDates: ReadonlySet<string>, now = new Date()): number {
+  const day = (offset: number): string => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - offset);
+    return d.toISOString().slice(0, 10);
+  };
+  let offset = activityDates.has(day(0)) ? 0 : 1;
+  let streak = 0;
+  while (activityDates.has(day(offset))) {
+    streak += 1;
+    offset += 1;
+  }
+  return streak;
+}
+
 const skillBySlug = new Map(SKILLS.map((s) => [s.slug, s]));
 
 export function catalogProvenance(): Provenance {
@@ -107,6 +134,7 @@ export interface TrainingUserStore {
   ): Promise<{ ok: boolean; error?: string }>;
   completeSession(userId: string, sessionId: string, note: string | null): Promise<boolean>;
   weeklySummary(userId: string): Promise<WeeklySummary>;
+  reports(userId: string): Promise<TrainingReports>;
 }
 
 class MockTrainingStore implements TrainingUserStore {
@@ -164,15 +192,14 @@ class MockTrainingStore implements TrainingUserStore {
     return getMockAuthStore().completeTrainingSession(userId, sessionId, note);
   }
 
-  async weeklySummary(userId: string): Promise<WeeklySummary> {
-    const weekAgo = Date.now() - 7 * 86_400_000;
+  private summarize(userId: string, sinceMs: number): WeeklySummary {
     const store = getMockAuthStore();
     const sessions = store
       .listTrainingSessions(userId)
-      .filter((s) => s.status === "completed" && Date.parse(s.startedAt) >= weekAgo);
+      .filter((s) => s.status === "completed" && Date.parse(s.startedAt) >= sinceMs);
     const results = store
       .listDrillResults(userId)
-      .filter((r) => Date.parse(r.createdAt) >= weekAgo);
+      .filter((r) => Date.parse(r.createdAt) >= sinceMs);
     const judged = results.filter((r) => r.passed !== null);
     return {
       sessionsCompleted: sessions.length,
@@ -182,6 +209,27 @@ class MockTrainingStore implements TrainingUserStore {
           ? Math.round((judged.filter((r) => r.passed).length / judged.length) * 100)
           : null,
       minutesCompleted: sessions.reduce((sum, s) => sum + s.minutesPlanned, 0),
+    };
+  }
+
+  async weeklySummary(userId: string): Promise<WeeklySummary> {
+    return this.summarize(userId, Date.now() - 7 * 86_400_000);
+  }
+
+  async reports(userId: string): Promise<TrainingReports> {
+    const store = getMockAuthStore();
+    const dates = new Set<string>();
+    for (const s of store.listTrainingSessions(userId)) {
+      if (s.status === "completed") dates.add(s.startedAt.slice(0, 10));
+    }
+    for (const r of store.listDrillResults(userId)) {
+      dates.add(r.createdAt.slice(0, 10));
+    }
+    return {
+      daily: this.summarize(userId, Date.now() - 86_400_000),
+      weekly: this.summarize(userId, Date.now() - 7 * 86_400_000),
+      monthly: this.summarize(userId, Date.now() - 30 * 86_400_000),
+      streakDays: computeStreak(dates),
     };
   }
 }
@@ -285,16 +333,15 @@ class SupabaseTrainingStore implements TrainingUserStore {
     return !error && data.length > 0;
   }
 
-  async weeklySummary(_userId: string): Promise<WeeklySummary> {
+  private async summarize(sinceIso: string): Promise<WeeklySummary> {
     const supabase = await createServerSupabase();
-    const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
     const [sessionsRes, resultsRes] = await Promise.all([
       supabase
         .from("user_training_sessions")
         .select("minutes_planned")
         .eq("status", "completed")
-        .gte("started_at", weekAgo),
-      supabase.from("drill_results").select("passed").gte("created_at", weekAgo),
+        .gte("started_at", sinceIso),
+      supabase.from("drill_results").select("passed").gte("created_at", sinceIso),
     ]);
     if (sessionsRes.error) throw new Error(sessionsRes.error.message);
     if (resultsRes.error) throw new Error(resultsRes.error.message);
@@ -307,6 +354,35 @@ class SupabaseTrainingStore implements TrainingUserStore {
           ? Math.round((judged.filter((r) => r.passed).length / judged.length) * 100)
           : null,
       minutesCompleted: sessionsRes.data.reduce((sum, s) => sum + s.minutes_planned, 0),
+    };
+  }
+
+  async weeklySummary(_userId: string): Promise<WeeklySummary> {
+    return this.summarize(new Date(Date.now() - 7 * 86_400_000).toISOString());
+  }
+
+  async reports(_userId: string): Promise<TrainingReports> {
+    const supabase = await createServerSupabase();
+    // Streak window: 60 days of activity dates is plenty for a daily streak.
+    const sinceIso = new Date(Date.now() - 60 * 86_400_000).toISOString();
+    const [sessionsRes, resultsRes] = await Promise.all([
+      supabase
+        .from("user_training_sessions")
+        .select("started_at")
+        .eq("status", "completed")
+        .gte("started_at", sinceIso),
+      supabase.from("drill_results").select("created_at").gte("created_at", sinceIso),
+    ]);
+    if (sessionsRes.error) throw new Error(sessionsRes.error.message);
+    if (resultsRes.error) throw new Error(resultsRes.error.message);
+    const dates = new Set<string>();
+    for (const s of sessionsRes.data) dates.add(String(s.started_at).slice(0, 10));
+    for (const r of resultsRes.data) dates.add(String(r.created_at).slice(0, 10));
+    return {
+      daily: await this.summarize(new Date(Date.now() - 86_400_000).toISOString()),
+      weekly: await this.summarize(new Date(Date.now() - 7 * 86_400_000).toISOString()),
+      monthly: await this.summarize(new Date(Date.now() - 30 * 86_400_000).toISOString()),
+      streakDays: computeStreak(dates),
     };
   }
 }
