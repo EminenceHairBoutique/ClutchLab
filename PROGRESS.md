@@ -17,7 +17,7 @@ Persistent progress ledger per spec §0.1.2. A fresh session must be able to res
 | 5 | Control Studio | **done** (2026-07-22, exit gate green) |
 | 6 | Community + verification | **done** (2026-07-22, exit gate green) |
 | 7 | AI Coach | **done** (2026-07-22, exit gate green) |
-| 8 | Billing + marketplace | not started |
+| 8 | Billing + marketplace | **done** (2026-07-22, exit gate green) |
 | 9 | Native mobile (Expo) | not started |
 
 Exit gate for every phase (spec §20): `pnpm lint` → `pnpm typecheck` → `pnpm test` → `pnpm build`
@@ -86,7 +86,13 @@ tests, all 11 routes console-error-free on a mobile viewport).
 | D19 | 2026-07-22 | AI coach lives in `packages/coach` (providers + pipeline + queue worker), not in apps/web | The worker must run without the Next.js app; one abstraction serves web, worker, and later mobile. Provider gateway (env → provider) stays in apps/web. |
 | D20 | 2026-07-22 | Mock auth mode simulates the analysis worker in-process using the SAME `runAnalysis` pipeline + mock provider; Supabase mode only queues (worker processes) | Demo stays fully self-contained and instant without violating the background-job rule for real video: the mock provider does no video processing. Production worker refuses the mock provider outright. |
 | D21 | 2026-07-22 | Mock-only affordance: signup emails starting `editor-` get the editor role | Human-review tools (§5.13.7) must be demoable + e2e-testable without a database. Unreachable in production (env validation forbids mock mode); real role grants stay server-side. |
-| D22 | 2026-07-22 | Coach quota is a single constant (10/month) enforced in the store and shown pre-upload | §5.13.6 requires surfacing quota before upload now; per-tier variation belongs to Phase 8 entitlements, avoiding scattered plan checks today. |
+| D22 | 2026-07-22 | Coach quota is a single constant (10/month) enforced in the store and shown pre-upload | §5.13.6 requires surfacing quota before upload now; per-tier variation belongs to Phase 8 entitlements, avoiding scattered plan checks today. (Superseded by D25 in Phase 8.) |
+| D23 | 2026-07-22 | Stripe client is fetch-based (no stripe SDK): 3 endpoints + HMAC webhook verify, zod-validated | Tiny surface, zero new deps, fully testable with injected fetch/clock; the SDK adds nothing we use. |
+| D24 | 2026-07-22 | Plan state changes ONLY via the signed webhook (service-role); checkout redirects never mutate plan | Payment truth lives with Stripe; client-visible success pages are not proof of payment. Mock mode (dev/test) switches directly with a loud banner and is refused in production. |
+| D25 | 2026-07-22 | Free plan gets 0 AI analyses; Pro 10/mo (no full-match); Elite 30/mo (all kinds) — encoded in the entitlements matrix | §14 lists AI reviews under Pro/Elite only. Coach quota now derives from entitlements (supersedes D22). |
+| D26 | 2026-07-22 | Sample marketplace coaches live in the MOCK store only (labeled, not bookable); the real DB gets no seeded coaches | coach_profiles FKs auth users — seeding fake humans into a real Supabase would pollute auth and imply real people. Demo mode stays rich; production stays clean. |
+| D27 | 2026-07-22 | Coach verification is trigger-protected in Postgres (only editor+ can flip `verified`) | RLS alone can't do column-level protection cleanly; the trigger makes self-verification impossible even through the owner-update policy. |
+| D28 | 2026-07-22 | Mock-only affordance extended: `admin-` signup emails get the admin role | Payout workflow (money) is admin-gated above the editor gate; needs to be demoable + e2e-testable without a database. Same safety argument as D21. |
 
 ## Blockers (with exact unblocking steps)
 
@@ -95,7 +101,8 @@ tests, all 11 routes console-error-free on a mobile viewport).
 | No Supabase project credentials | App runs in explicit "auth unconfigured" mock mode; real signup/login inert | Create Supabase project → set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` in `.env` → `pnpm db:migrate && pnpm db:seed` → unset `AUTH_MOCK`. See SETUP.md. |
 | No Google/Apple OAuth credentials | OAuth buttons hidden (env-gated) | Configure providers in Supabase dashboard → set `NEXT_PUBLIC_AUTH_GOOGLE=1` / `NEXT_PUBLIC_AUTH_APPLE=1`. |
 | No Sentry DSN | Error monitoring wired but disabled | Create Sentry project → set `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN`. |
-| No Stripe keys (Phase 8) | Billing not started yet anyway | Needed at Phase 8 only. |
+| No Stripe keys | Billing runs in labeled mock mode; production billing refuses | Create Stripe products/prices → set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_ELITE` → add webhook endpoint `/api/stripe/webhook`. See SETUP.md. |
+| No Stripe Connect | Marketplace payouts are a manual admin ledger, not real transfers | Enable Stripe Connect (Express) → onboard coaches → replace `markPayoutPaid` manual step with Transfer API calls. |
 | No Anthropic API key/model | Coach runs the labeled mock provider; real analyses inert | Set `ANTHROPIC_API_KEY` + `AI_COACH_MODEL` in `.env` (worker env too). See AI_COACH.md. |
 | No Supabase Storage bucket | Real recording upload (signed URLs) inert; metadata flow works | With Supabase creds: create private `recordings` bucket; client PUT + `markUploaded` wire-up per AI_COACH.md. |
 | No ffmpeg in this environment | Worker analyzes metadata-only → providers refuse to fabricate → honest job failure | Bundle ffmpeg in the worker image; implement `extractFrames` hook (interface ready) per AI_COACH.md. |
@@ -238,12 +245,43 @@ tests, all 11 routes console-error-free on a mobile viewport).
 (226 tests: 10 config + 11 ui + 16 meta-engine + 12 calibration + 30 content + 19 coach +
 70 db/RLS/worker + 58 web) · `APP_ENV=test pnpm build` ✅ · `APP_ENV=test pnpm e2e` ✅ (41 tests).
 
+## Phase 8 — Billing + marketplace (done, 2026-07-22)
+
+- `packages/billing`: §14 entitlements matrix in ONE place (coach analyses/month + allowed
+  upload kinds, sensitivity profile & control layout limits, vault depth, coach discount) —
+  features call helpers, never compare plan strings; SDK-free Stripe provider (fetch + zod,
+  HMAC webhook verification with timestamp tolerance, subscription lifecycle mapped through
+  configured price IDs) + `stripe.mock.ts`; 20% platform fee split helper backed by the
+  ledger CHECK. 15 unit tests. Env: `STRIPE_SECRET_KEY` requires webhook secret + price IDs.
+- `/billing`: public §14 plan cards, current-plan card, mock-mode instant switches (loudly
+  labeled; production refuses), Stripe checkout/portal redirects when configured;
+  `/api/stripe/webhook` is the only writer of plan state (service-role upsert).
+- Entitlements enforced server-side: free = 0 AI analyses (§14 lists none) with an explicit
+  upgrade card, Pro = 10/month without full-match, Elite = 30/month incl. full-match; free =
+  1 sensitivity profile and 1 control layout (create actions + pro-fork all gate through one
+  checked helper).
+- Marketplace (§5.17): migration 0008 (coach_profiles with trigger-protected verification,
+  coach_services, bookings, marketplace_orders with fee+net=amount CHECK, coach_reviews),
+  RLS (participant-only bookings, verified-only directory, completed-booking reviews,
+  admin-only ledger) — 8 RLS tests; directory + coach detail + booking workflow
+  (request→accept→deliver→confirm) + reviews; `/admin/coach` verifies coach credentials;
+  `/admin/payouts` (admin role) fee-split ledger with mark-paid. Credential-request language
+  rejected at listing/booking layer; sample coaches exist in mock mode only, labeled, not
+  bookable.
+- E2E: billing (4 — §17 critical "user upgrades" incl. re-lock on downgrade, Elite gate,
+  free profile cap) + marketplace (2 — full apply→verify→book→deliver→confirm→review→payout
+  loop across four sessions). Coach e2e updated for the plan gate.
+
+**Exit gate (repo root, 2026-07-22):** `pnpm lint` ✅ · `pnpm typecheck` ✅ · `pnpm test` ✅
+(251 tests: 12 config + 11 ui + 16 meta-engine + 12 calibration + 30 content + 19 coach +
+15 billing + 78 db/RLS/worker + 58 web) · `APP_ENV=test pnpm build` ✅ ·
+`APP_ENV=test pnpm e2e` ✅ (47 tests).
+
 ## Next steps (exact)
 
-1. **Phase 8 (Billing + marketplace):** entitlements model (plan tiers gate coach quota, pro
-   comparisons, advanced analytics — no scattered `plan === 'pro'` checks); Stripe behind a
-   provider interface + `stripe.mock.ts` (checkout, webhooks, customer portal); subscription
-   sync into the existing `subscriptions` table; coach marketplace schema (creator profiles
-   exist) with bookings/reviews/payouts as schema + honest placeholders where Stripe Connect
-   credentials are required.
-2. Then Phase 9 (Expo app) per IMPLEMENTATION_PLAN.md.
+1. **Phase 9 (Native mobile):** Expo app in `apps/mobile` sharing types/design tokens;
+   read-mostly MVP (meta, settings viewer, training list, coach report viewer) against the
+   same Supabase backend; push notifications + offline caching + deep links per spec §20
+   Phase 9. Uploads from mobile reuse the signed-URL flow.
+2. Post-phase hardening backlog: Stripe Connect payouts, ffmpeg worker image, Supabase
+   Storage bucket provisioning, real OAuth creds — all tracked in Blockers.

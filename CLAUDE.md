@@ -53,6 +53,7 @@ supabase/seed.sql     Roles, permissions, device KB · seed_content.sql = GENERA
 supabase/tests        Auth shim for the local harness (never run against real Supabase)
 packages/calibration  §5.7 sensitivity model + 14-step guided calibration flow
 packages/coach        §5.13 AI provider abstraction, two-pass pipeline, queue worker (AI_COACH.md)
+packages/billing      §14 entitlements matrix + SDK-free Stripe provider + fee split
 apps/mobile           Phase 9 (Expo)
 ```
 

@@ -64,6 +64,19 @@ the worker refuses mock in production). To go real:
    `DATABASE_URL=... pnpm --filter @clutchlab/coach worker`
    (bundle ffmpeg in the worker image for keyframe extraction — see `AI_COACH.md`).
 
+## Billing (Stripe)
+
+Without `STRIPE_SECRET_KEY`, billing runs in mock mode (instant plan switches, loudly labeled,
+dev/test only — production billing actions refuse). To go real:
+
+1. Create two recurring prices (Pro, Elite) in Stripe; set `STRIPE_PRICE_PRO` / `STRIPE_PRICE_ELITE`.
+2. Set `STRIPE_SECRET_KEY` and, after adding the endpoint, `STRIPE_WEBHOOK_SECRET`.
+3. Point a webhook at `/api/stripe/webhook` with `checkout.session.completed`,
+   `customer.subscription.updated`, `customer.subscription.deleted`.
+   Plan state only ever changes via this signed webhook (service-role write).
+4. Marketplace payouts additionally need Stripe Connect (not yet wired — the
+   `/admin/payouts` ledger tracks what is owed meanwhile).
+
 ## Error monitoring
 
 Set `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN`. Without them Sentry code stays dormant (and mostly
