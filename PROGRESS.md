@@ -14,7 +14,7 @@ Persistent progress ledger per spec §0.1.2. A fresh session must be able to res
 | 2 | Versioned content + meta MVP | **done** (2026-07-21, exit gate green) |
 | 3 | Settings + sensitivity MVP | **done** (2026-07-21, exit gate green) |
 | 4 | Training MVP | **done** (2026-07-22, exit gate green) |
-| 5 | Control Studio | not started |
+| 5 | Control Studio | **done** (2026-07-22, exit gate green) |
 | 6 | Community + verification | not started |
 | 7 | AI Coach | not started |
 | 8 | Billing + marketplace | not started |
@@ -161,10 +161,31 @@ tests, all 11 routes console-error-free on a mobile viewport).
 `pnpm test` ✅ (173 tests: 10 config + 11 ui + 16 meta-engine + 12 calibration + 30 content +
 47 db/RLS + 47 web) · `APP_ENV=test pnpm build` ✅ · `APP_ENV=test pnpm e2e` ✅ (32 tests).
 
+## Phase 5 — Control Studio (done, 2026-07-22)
+
+- Migration 0005: control_elements catalog, user-owned control_layouts with immutable
+  control_layout_versions + normalized control_positions, per-version control_analysis,
+  drill-linked control_test_results. Owner-chain RLS matching the sensitivity pattern.
+- Ergonomics engine (`apps/web/src/lib/controls/ergonomics.ts`, versioned `ergonomics-v1`):
+  aspect-corrected distances, finger-zone assignment, collision/edge/notch detection,
+  right-thumb congestion (spec §5.9's canonical finding verbatim), chained-action travel.
+- 21-element original catalog + 4 sample templates (2/3/4/5-finger) in packages/content;
+  elements seeded to DB; templates are UI starting points.
+- /controls: template-based creation, pointer-drag editor with LIVE analysis (score badge +
+  severity-coded findings), per-element resize, save-as-version, rollback, §5.9 test-drill links.
+- Deviations logged: workload heat map rendered as category-colored elements + per-zone finding
+  text (graphical heat overlay deferred); layout sharing deferred to Phase 6 (community);
+  control_test_results table ready but results log through drill pages for now.
+
+**Exit gate (repo root, 2026-07-22):** `pnpm lint` ✅ · `pnpm typecheck` ✅ · `pnpm test` ✅
+(182 tests: 10 config + 11 ui + 16 meta-engine + 12 calibration + 30 content + 47 db/RLS +
+56 web) · `APP_ENV=test pnpm build` ✅ · `APP_ENV=test pnpm e2e` ✅ (34 tests).
+
 ## Next steps (exact)
 
-1. **Phase 5 (Control Studio):** migrations for control_layouts/control_elements/
-   control_positions/control_analysis/control_test_results; visual HUD editor (original assets),
-   ergonomic analysis engine (finger travel/collisions/reach) + heat map, layout test drills
-   (already seeded in the drill catalog), layout versioning + sharing.
-2. Then Phase 6 (community + verification) per IMPLEMENTATION_PLAN.md.
+1. **Phase 6 (community + verification):** migrations for posts/comments/reactions/reports/
+   moderation_actions/reputation_events/correction_requests + creator_profiles/creator_content;
+   moderated posting UI, report → moderator queue in /admin, pro-vault correction requests,
+   layout/settings sharing; MODERATION.md.
+2. Then Phase 7 (AI Coach: upload flow + job queue + provider abstraction with mock adapter)
+   per IMPLEMENTATION_PLAN.md.
