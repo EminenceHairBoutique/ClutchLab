@@ -65,7 +65,12 @@ export default async function CoachPage({
   return (
     <div className="space-y-5">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">AI Coach</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">AI Coach</h1>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/coach/marketplace">Human coach marketplace</Link>
+          </Button>
+        </div>
         <p className="text-sm text-muted">
           Post-match analysis of recordings you upload — never live assistance, overlays, or
           automation. Timestamped evidence, the three highest-impact mistakes, assigned drills, and

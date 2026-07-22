@@ -2,7 +2,9 @@ import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitl
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { verifyCoachAction } from "@/app/coach/marketplace/actions";
 import { getCoachStore } from "@/lib/data/coach-store";
+import { getMarketplaceStore } from "@/lib/data/marketplace-store";
 import { formatDate } from "@/lib/dates";
 
 import { reviewReportAction } from "./actions";
@@ -10,14 +12,46 @@ import { reviewReportAction } from "./actions";
 export const metadata: Metadata = { title: "AI report review" };
 
 /**
- * Human-review queue for AI coaching reports (spec §5.13.7). The admin layout
- * enforces the editor role; RLS enforces it again at the database.
+ * Human-review queue for AI coaching reports (spec §5.13.7) and marketplace
+ * coach applications (§5.17). The admin layout enforces the editor role; RLS
+ * enforces it again at the database.
  */
 export default async function AdminCoachPage() {
   const queue = await getCoachStore().listPendingReview();
+  const applications = await getMarketplaceStore().listUnverifiedCoaches();
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
+      {applications.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Coach applications</h2>
+          {applications.map((application) => (
+            <Card key={application.userId}>
+              <CardHeader className="pb-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <CardTitle className="text-sm">{application.displayName}</CardTitle>
+                  <span className="ml-auto text-xs text-faint">
+                    {formatDate(application.createdAt)}
+                  </span>
+                </div>
+                <CardDescription>
+                  Claimed credentials: {application.credentials ?? "(none provided)"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form action={verifyCoachAction}>
+                  <input type="hidden" name="coachId" value={application.userId} />
+                  <Button type="submit" size="sm" variant="accent">
+                    Verify credentials
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-3">
       <p className="text-sm text-muted">
         AI-generated coaching reports awaiting a human spot-check, oldest first. Publishing marks
         the report as reviewed; rejecting flags it as not up to standard. Users can read their own
@@ -65,6 +99,7 @@ export default async function AdminCoachPage() {
           </CardContent>
         </Card>
       ))}
+      </div>
     </div>
   );
 }

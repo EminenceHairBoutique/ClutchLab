@@ -206,6 +206,73 @@ export interface MockCoachRecommendation {
   reason: string;
 }
 
+export interface MockCoachProfile {
+  userId: string;
+  displayName: string;
+  headline: string | null;
+  bio: string | null;
+  region: string | null;
+  languages: string[];
+  credentials: string | null;
+  availabilityNote: string | null;
+  verified: boolean;
+  acceptingBookings: boolean;
+  dataStatus: "verified" | "unverified" | "sample";
+  createdAt: string;
+}
+
+export interface MockCoachService {
+  id: string;
+  coachId: string;
+  kind: string;
+  title: string;
+  description: string | null;
+  priceCents: number;
+  currency: string;
+  deliveryDays: number;
+  active: boolean;
+}
+
+export interface MockBooking {
+  id: string;
+  serviceId: string;
+  coachId: string;
+  playerId: string;
+  status: "requested" | "accepted" | "declined" | "delivered" | "completed" | "canceled" | "disputed";
+  note: string | null;
+  deliverable: string | null;
+  respondedAt: string | null;
+  deliveredAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export interface MockOrder {
+  id: string;
+  bookingId: string;
+  playerId: string;
+  coachId: string;
+  amountCents: number;
+  currency: string;
+  platformFeeCents: number;
+  coachNetCents: number;
+  status: "pending_payment" | "paid" | "refunded" | "disputed";
+  payoutStatus: "not_due" | "pending" | "paid";
+  paidAt: string | null;
+  payoutAt: string | null;
+  createdAt: string;
+}
+
+export interface MockMarketplaceReview {
+  id: string;
+  bookingId: string;
+  coachId: string;
+  playerId: string;
+  rating: number;
+  body: string | null;
+  createdAt: string;
+}
+
 const emptyProfile = (): MockProfileRecord => ({
   displayName: null,
   handle: null,
@@ -235,11 +302,15 @@ export class MockAuthStore {
     // Mirrors the real signup trigger creating an empty profile row.
     this.profiles.set(user.id, emptyProfile());
     // Mock-only demo affordance: an email starting with "editor-" gets the
-    // editor role so the review tooling is demoable without a database. Real
-    // Supabase role grants are server-side only (see SETUP.md); the mock
-    // store cannot run in production (env validation forbids it).
+    // editor role (review tooling) and "admin-" gets admin (payout workflow),
+    // so staff surfaces are demoable without a database. Real Supabase role
+    // grants are server-side only (see SETUP.md); the mock store cannot run
+    // in production (env validation forbids it).
     if (normalized.startsWith("editor-")) {
       this.grantRole(user.id, "editor");
+    }
+    if (normalized.startsWith("admin-")) {
+      this.grantRole(user.id, "admin");
     }
     return { ok: true, user };
   }
@@ -834,6 +905,299 @@ export class MockAuthStore {
     report.reviewStatus = decision;
     report.reviewedBy = editorId;
     report.reviewedAt = new Date().toISOString();
+    return true;
+  }
+
+  // --- Coach marketplace (profiles, services, bookings, orders, reviews) ---
+
+  private coachProfiles = new Map<string, MockCoachProfile>();
+  private coachServices = new Map<string, MockCoachService>();
+  private bookings = new Map<string, MockBooking>();
+  private orders = new Map<string, MockOrder>();
+  private marketplaceReviews: MockMarketplaceReview[] = [];
+  private marketplaceSeeded = false;
+
+  /**
+   * Sample coaches (dataStatus 'sample', clearly fictional, NOT accepting
+   * bookings) so the directory demonstrates the marketplace without implying
+   * real people. The real booking loop runs against user-created coaches.
+   */
+  private ensureMarketplaceSeed(): void {
+    if (this.marketplaceSeeded) return;
+    this.marketplaceSeeded = true;
+    const samples: Array<{
+      profile: Omit<MockCoachProfile, "createdAt">;
+      services: Array<Omit<MockCoachService, "id" | "coachId">>;
+    }> = [
+      {
+        profile: {
+          userId: "sample-coach-emberline",
+          displayName: "Emberline (sample)",
+          headline: "IGL-turned-coach focused on entry discipline and trades",
+          bio: "Sample coach profile for demonstration. Reviews are written async with timestamped notes.",
+          region: "EU",
+          languages: ["en", "de"],
+          credentials: "Sample data — 3 seasons of competitive scrims (fictional).",
+          availabilityNote: "Demo profile — not accepting bookings.",
+          verified: true,
+          acceptingBookings: false,
+          dataStatus: "sample",
+        },
+        services: [
+          { kind: "clip_review", title: "Async clip review with written notes", description: "One clip up to 3 minutes, timestamped feedback.", priceCents: 1500, currency: "usd", deliveryDays: 3, active: true },
+          { kind: "sensitivity_calibration", title: "Guided sensitivity calibration session", description: "Works through the ClutchLab calibration flow with you.", priceCents: 2500, currency: "usd", deliveryDays: 5, active: true },
+        ],
+      },
+      {
+        profile: {
+          userId: "sample-coach-kitefall",
+          displayName: "Kitefall (sample)",
+          headline: "Full-match VOD analysis, rotation-first",
+          bio: "Sample coach profile for demonstration. Focus on macro decisions over aim blame.",
+          region: "SEA",
+          languages: ["en", "id"],
+          credentials: "Sample data — former scrim analyst (fictional).",
+          availabilityNote: "Demo profile — not accepting bookings.",
+          verified: true,
+          acceptingBookings: false,
+          dataStatus: "sample",
+        },
+        services: [
+          { kind: "full_match_review", title: "Full-match rotation review", description: "Zone by zone: where the lobby was, where you should have been.", priceCents: 3000, currency: "usd", deliveryDays: 4, active: true },
+          { kind: "map_strategy", title: "Map strategy session (Erangel/Miramar)", description: "Drop plans, mid-game routes, endgame anchors.", priceCents: 2000, currency: "usd", deliveryDays: 3, active: true },
+        ],
+      },
+      {
+        profile: {
+          userId: "sample-coach-veracity",
+          displayName: "Veracity (sample)",
+          headline: "Controls and ergonomics specialist",
+          bio: "Sample coach profile for demonstration. Layout reviews use the ergonomics report you already have.",
+          region: "NA",
+          languages: ["en", "es"],
+          credentials: "Sample data — claw-grip layout theorist (fictional).",
+          availabilityNote: "Demo profile — not accepting bookings.",
+          verified: true,
+          acceptingBookings: false,
+          dataStatus: "sample",
+        },
+        services: [
+          { kind: "control_layout_review", title: "Control layout + ergonomics review", description: "Your layout against your hand size, fingers, and device.", priceCents: 1800, currency: "usd", deliveryDays: 3, active: true },
+          { kind: "ultimate_royale_prep", title: "Ultimate Royale preparation", description: "Mode-specific loadouts, spawns, and pacing.", priceCents: 2200, currency: "usd", deliveryDays: 5, active: true },
+        ],
+      },
+    ];
+    const now = new Date().toISOString();
+    for (const sample of samples) {
+      this.coachProfiles.set(sample.profile.userId, { ...sample.profile, createdAt: now });
+      for (const service of sample.services) {
+        const id = randomUUID();
+        this.coachServices.set(id, { ...service, id, coachId: sample.profile.userId });
+      }
+    }
+  }
+
+  upsertCoachProfile(
+    userId: string,
+    input: Omit<
+      MockCoachProfile,
+      "userId" | "verified" | "acceptingBookings" | "dataStatus" | "createdAt"
+    > & { acceptingBookings: boolean },
+  ): void {
+    this.ensureMarketplaceSeed();
+    const existing = this.coachProfiles.get(userId);
+    this.coachProfiles.set(userId, {
+      userId,
+      ...input,
+      // Verification is editorial; a profile edit never grants it.
+      verified: existing?.verified ?? false,
+      dataStatus: existing?.dataStatus ?? "unverified",
+      createdAt: existing?.createdAt ?? new Date().toISOString(),
+    });
+  }
+
+  getCoachProfile(userId: string): MockCoachProfile | null {
+    this.ensureMarketplaceSeed();
+    return this.coachProfiles.get(userId) ?? null;
+  }
+
+  listVerifiedCoaches(): MockCoachProfile[] {
+    this.ensureMarketplaceSeed();
+    return [...this.coachProfiles.values()]
+      .filter((c) => c.verified)
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }
+
+  listUnverifiedCoaches(): MockCoachProfile[] {
+    this.ensureMarketplaceSeed();
+    return [...this.coachProfiles.values()]
+      .filter((c) => !c.verified)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  setCoachVerified(userId: string, verified: boolean): boolean {
+    const profile = this.coachProfiles.get(userId);
+    if (!profile) return false;
+    profile.verified = verified;
+    return true;
+  }
+
+  addCoachService(
+    coachId: string,
+    input: Omit<MockCoachService, "id" | "coachId">,
+  ): string {
+    const id = randomUUID();
+    this.coachServices.set(id, { ...input, id, coachId });
+    return id;
+  }
+
+  listCoachServices(coachId: string, activeOnly: boolean): MockCoachService[] {
+    this.ensureMarketplaceSeed();
+    return [...this.coachServices.values()].filter(
+      (s) => s.coachId === coachId && (!activeOnly || s.active),
+    );
+  }
+
+  getCoachService(serviceId: string): MockCoachService | null {
+    this.ensureMarketplaceSeed();
+    return this.coachServices.get(serviceId) ?? null;
+  }
+
+  createBooking(
+    playerId: string,
+    service: MockCoachService,
+    note: string | null,
+    fees: { platformFeeCents: number; coachNetCents: number },
+  ): string {
+    const now = new Date().toISOString();
+    const bookingId = randomUUID();
+    this.bookings.set(bookingId, {
+      id: bookingId,
+      serviceId: service.id,
+      coachId: service.coachId,
+      playerId,
+      status: "requested",
+      note,
+      deliverable: null,
+      respondedAt: null,
+      deliveredAt: null,
+      completedAt: null,
+      createdAt: now,
+    });
+    // Mock payment: order paid immediately (no Stripe Connect in demo mode).
+    const orderId = randomUUID();
+    this.orders.set(orderId, {
+      id: orderId,
+      bookingId,
+      playerId,
+      coachId: service.coachId,
+      amountCents: service.priceCents,
+      currency: service.currency,
+      platformFeeCents: fees.platformFeeCents,
+      coachNetCents: fees.coachNetCents,
+      status: "paid",
+      payoutStatus: "not_due",
+      paidAt: now,
+      payoutAt: null,
+      createdAt: now,
+    });
+    return bookingId;
+  }
+
+  getBooking(bookingId: string): MockBooking | null {
+    return this.bookings.get(bookingId) ?? null;
+  }
+
+  listBookingsForPlayer(playerId: string): MockBooking[] {
+    return [...this.bookings.values()]
+      .filter((b) => b.playerId === playerId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  listBookingsForCoach(coachId: string): MockBooking[] {
+    return [...this.bookings.values()]
+      .filter((b) => b.coachId === coachId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  getOrderForBooking(bookingId: string): MockOrder | null {
+    return [...this.orders.values()].find((o) => o.bookingId === bookingId) ?? null;
+  }
+
+  respondToBooking(coachId: string, bookingId: string, accept: boolean): boolean {
+    const booking = this.bookings.get(bookingId);
+    if (!booking || booking.coachId !== coachId || booking.status !== "requested") return false;
+    booking.status = accept ? "accepted" : "declined";
+    booking.respondedAt = new Date().toISOString();
+    if (!accept) {
+      const order = this.getOrderForBooking(bookingId);
+      if (order) order.status = "refunded";
+    }
+    return true;
+  }
+
+  deliverBooking(coachId: string, bookingId: string, deliverable: string): boolean {
+    const booking = this.bookings.get(bookingId);
+    if (!booking || booking.coachId !== coachId || booking.status !== "accepted") return false;
+    booking.status = "delivered";
+    booking.deliverable = deliverable;
+    booking.deliveredAt = new Date().toISOString();
+    return true;
+  }
+
+  completeBooking(playerId: string, bookingId: string): boolean {
+    const booking = this.bookings.get(bookingId);
+    if (!booking || booking.playerId !== playerId || booking.status !== "delivered") return false;
+    booking.status = "completed";
+    booking.completedAt = new Date().toISOString();
+    const order = this.getOrderForBooking(bookingId);
+    if (order && order.status === "paid") order.payoutStatus = "pending";
+    return true;
+  }
+
+  addMarketplaceReview(
+    playerId: string,
+    bookingId: string,
+    rating: number,
+    body: string | null,
+  ): { ok: boolean; error?: string } {
+    const booking = this.bookings.get(bookingId);
+    if (!booking || booking.playerId !== playerId) return { ok: false, error: "Booking not found." };
+    if (booking.status !== "completed") {
+      return { ok: false, error: "Reviews unlock after you confirm delivery." };
+    }
+    if (this.marketplaceReviews.some((r) => r.bookingId === bookingId)) {
+      return { ok: false, error: "You already reviewed this booking." };
+    }
+    this.marketplaceReviews.push({
+      id: randomUUID(),
+      bookingId,
+      coachId: booking.coachId,
+      playerId,
+      rating,
+      body,
+      createdAt: new Date().toISOString(),
+    });
+    return { ok: true };
+  }
+
+  listMarketplaceReviews(coachId: string): MockMarketplaceReview[] {
+    return this.marketplaceReviews
+      .filter((r) => r.coachId === coachId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  listPendingPayouts(): MockOrder[] {
+    return [...this.orders.values()]
+      .filter((o) => o.status === "paid" && o.payoutStatus === "pending")
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  markPayoutPaid(orderId: string): boolean {
+    const order = [...this.orders.values()].find((o) => o.id === orderId);
+    if (!order || order.payoutStatus !== "pending") return false;
+    order.payoutStatus = "paid";
+    order.payoutAt = new Date().toISOString();
     return true;
   }
 

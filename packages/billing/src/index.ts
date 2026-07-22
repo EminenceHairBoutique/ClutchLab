@@ -22,3 +22,4 @@ export {
 } from "./provider";
 export { StripeBillingProvider, mapStripeStatus, type StripeBillingOptions } from "./stripe";
 export { MockBillingProvider } from "./stripe.mock";
+export { PLATFORM_FEE_PERCENT, computeFeeSplit, type FeeSplit } from "./fees";
