@@ -99,6 +99,10 @@ tests, all 11 routes console-error-free on a mobile viewport).
 | D32 | 2026-07-22 | iPhone distribution = the PWA (Add to Home Screen); the Expo app remains the native track | Full app on iPhone today with zero store/credential dependencies: standalone display, offline shell, and (once VAPID keys exist) push for installed web apps. Hand-rolled SW over a plugin: 3 explicit strategies beat opaque precache manifests. |
 | D33 | 2026-07-22 | §9 tables `drill_versions`, `drill_steps`, `benchmarks`, `source_snapshots`, `content_revisions` deliberately deferred | Each is a versioning/audit refinement of a live feature with no behavior behind it yet; schema-only tables would be fake completeness. Revisit when drill editing, measured benchmarks, or editorial revision history become real workflows. |
 | D34 | 2026-07-22 | Notification kinds are exactly the §5.18 twelve; product events map onto them (AI report + bookings → coach_response) rather than inventing new kinds | Keeps the preference matrix legible and spec-faithful; per-event splits can arrive later as sub-preferences if users need finer control. |
+| D35 | 2026-07-22 | Ship the monorepo to `main` via PR; require Vercel Root Directory = `apps/web` | `main` had a flat, mismatched layout that likely failed to build; the monorepo is the real product. Root Directory is the one setting that makes it deploy (DEPLOYMENT.md). |
+| D36 | 2026-07-22 | JSON-LD uses TechArticle/BreadcrumbList + a bare SoftwareApplication Offer — never aggregateRating/reviewCount | Structured data must be truthful (no fabricated review scores); tiers are editorial baselines, not ratings. |
+| D37 | 2026-07-22 | Next 16 builds with `--webpack`; keep the Sentry OTel webpack warning-suppression | Next 16 defaults to Turbopack, which conflicts with the existing webpack customization and crashed the build worker; `--webpack` is supported and preserves the working config. |
+| D38 | 2026-07-22 | Hold eslint 10, TS 7, zod 4, and the vitest4/vite8 stack; take Next 16 + TS 6 + Sentry 10 + lucide 1 | Gate-driven: eslint 10 breaks the Next plugin tree (eslint-plugin-react 7.37), TS 7 is a dev build capped out by typescript-eslint, zod 4 is ~28 breaking sites for little benefit, and vitest 4 needs vite 8 + new babel peers. Revisit as the ecosystem catches up. |
 
 ## Blockers (with exact unblocking steps)
 
@@ -333,6 +337,32 @@ Built after Phase 9 to close the spec sections that aren't numbered phases:
 (270 tests: 12 config + 12 ui + 16 meta-engine + 12 calibration + 30 content + 19 coach +
 15 billing + 8 mobile + 82 db + 64 web) · `APP_ENV=test pnpm build` ✅ ·
 `APP_ENV=test pnpm e2e` ✅ (54 tests).
+
+## Audit + upgrade pass (2026-07-22)
+
+Triggered by "audit the repo + live site, upgrade/integrate/refresh." Key audit finding:
+**`main` had diverged into a flat, mismatched layout that likely failed to build on Vercel** —
+the live site (`clutchlabv3.vercel.app`) was not running this monorepo. Resolution: a PR brings
+the monorepo to `main` (Vercel Root Directory must be set to `apps/web` — see DEPLOYMENT.md).
+The live URL returned 403 to automated fetches (bot protection or a failed deploy — couldn't
+inspect it directly).
+
+Delivered (all gate-green — 273 unit/integration tests, 55 e2e):
+
+- **Data refresh (§2):** re-verified 4.5/S31 is current; enriched with corroborated details
+  (Naruto across Erangel/Livik/Sanhok, Scuderia Ferrari collab, Fast Swim, Monster Truck
+  handling, Metro Royale Ch.33). All `unverified` with sources; claim C8 logged; seed regen'd.
+- **SEO/UX (§19):** JSON-LD site graph (Organization/WebSite/SoftwareApplication) + weapon
+  TechArticle/BreadcrumbList (no fabricated ratings); notifications nav bell with live unread
+  badge (static-safe via a tiny no-store endpoint); fixed stale nav "in-development" flags.
+- **Production hardening:** security headers + `/sw.js` no-cache in `next.config` (portable);
+  `@clutchlab/coach`/`billing` added to `transpilePackages`; **DEPLOYMENT.md** (Vercel Root
+  Directory fix, env matrix, pooler-based migrate/seed, smoke checklist).
+- **Dependency upgrades:** Next 15→16 (webpack build), TypeScript 5.9→6.0, @sentry/nextjs
+  9→10, lucide 0.5→1.25, typescript-eslint 8.65, jsdom 29, jest-dom 7, eslint-config-next 16
+  (native flat config). **Held with reasons:** eslint 10 (Next plugin tree not ready), TS 7
+  (dev build; typescript-eslint peers <6.1.0), zod 4 (~28 breaking sites, low benefit),
+  vitest 4/vite 8 stack (coordinated major, low value). See decisions D35–D38.
 
 ## Project state: all nine phases complete
 
