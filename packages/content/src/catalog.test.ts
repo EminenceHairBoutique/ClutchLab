@@ -135,6 +135,62 @@ describe("phase 3 catalog", () => {
   });
 });
 
+describe("phase 4 training catalog", () => {
+  it("ships at least 40 drills covering the required structure (spec §21, §5.10)", async () => {
+    const { DRILLS, drillSchema } = await import("./catalog/training");
+    expect(DRILLS.length).toBeGreaterThanOrEqual(40);
+    for (const d of DRILLS) {
+      expect(() => drillSchema.parse(d), d.slug).not.toThrow();
+    }
+    const slugs = DRILLS.map((d) => d.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+  });
+
+  it("drills reference existing skills and progressions", async () => {
+    const { DRILLS, SKILLS } = await import("./catalog/training");
+    const skillSlugs = new Set(SKILLS.map((s) => s.slug));
+    const drillSlugs = new Set(DRILLS.map((d) => d.slug));
+    for (const d of DRILLS) {
+      expect(skillSlugs.has(d.skillSlug), `${d.slug} → skill ${d.skillSlug}`).toBe(true);
+      if (d.progressionSlug) {
+        expect(drillSlugs.has(d.progressionSlug), `${d.slug} → ${d.progressionSlug}`).toBe(true);
+      }
+    }
+  });
+
+  it("includes the aim-assist A/B pairs (spec §5.6 decision lab)", async () => {
+    const { DRILLS } = await import("./catalog/training");
+    const on = DRILLS.filter((d) => d.aimAssistVariant === "on");
+    const off = DRILLS.filter((d) => d.aimAssistVariant === "off");
+    expect(on.length).toBeGreaterThanOrEqual(2);
+    expect(off.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("ships at least 10 plans whose items reference real drills and fit their budget", async () => {
+    const { DRILLS, TRAINING_PLANS, planSchema } = await import("./catalog/training");
+    expect(TRAINING_PLANS.length).toBeGreaterThanOrEqual(10);
+    const drillSlugs = new Set(DRILLS.map((d) => d.slug));
+    for (const plan of TRAINING_PLANS) {
+      expect(() => planSchema.parse(plan), plan.slug).not.toThrow();
+      const total = plan.items.reduce((sum, item) => sum + item.minutes, 0);
+      expect(total, `${plan.slug} minutes`).toBeLessThanOrEqual(plan.minutes);
+      expect(total, `${plan.slug} minutes`).toBeGreaterThanOrEqual(plan.minutes - 5);
+      for (const item of plan.items) {
+        expect(drillSlugs.has(item.drillSlug), `${plan.slug} → ${item.drillSlug}`).toBe(true);
+      }
+    }
+  });
+
+  it("WoW directory entries never carry invented map codes", async () => {
+    const { WOW_MAPS } = await import("./catalog/training");
+    expect(WOW_MAPS.length).toBeGreaterThanOrEqual(6);
+    for (const map of WOW_MAPS) {
+      expect(map.mapCode, map.slug).toBeNull();
+      expect(map.slug.startsWith("sample-"), map.slug).toBe(true);
+    }
+  });
+});
+
 describe("baseline tiers", () => {
   const rows = computeBaselineTiers();
 

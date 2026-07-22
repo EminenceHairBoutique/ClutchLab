@@ -13,6 +13,7 @@ import { MAPS } from "./catalog/maps";
 import { MODES } from "./catalog/modes";
 import { SAMPLE_PROS, SAMPLE_TEAMS } from "./catalog/pros";
 import { SETTING_EXPLAINERS } from "./catalog/settings";
+import { DRILLS, SKILLS, TRAINING_PLANS, WOW_MAPS } from "./catalog/training";
 import { SOURCES } from "./catalog/sources";
 import { GAME_VERSION_45, PATCH_45, SEASONS } from "./catalog/versions";
 import { TIERABLE_WEAPONS, WEAPONS } from "./catalog/weapons";
@@ -74,6 +75,10 @@ export const CONTENT_BASELINE = {
   settingExplainers: SETTING_EXPLAINERS,
   sampleTeams: SAMPLE_TEAMS,
   samplePros: SAMPLE_PROS,
+  skills: SKILLS,
+  drills: DRILLS,
+  trainingPlans: TRAINING_PLANS,
+  wowMaps: WOW_MAPS,
   methodology: METHODOLOGY,
   modeContexts: MODE_CONTEXTS,
   snapshotSlug: SNAPSHOT_SLUG,

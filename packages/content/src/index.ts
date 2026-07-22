@@ -22,6 +22,20 @@ export {
   type SettingExplainer,
 } from "./catalog/settings";
 export { SOURCES } from "./catalog/sources";
+export {
+  DRILLS,
+  SKILLS,
+  TRAINING_PLANS,
+  WOW_MAPS,
+  drillSchema,
+  planSchema,
+  skillSchema,
+  wowMapSchema,
+  type DrillRecord,
+  type PlanRecord,
+  type SkillRecord,
+  type WowMapRecord,
+} from "./catalog/training";
 export { GAME_VERSION_45, PATCH_45, SEASONS } from "./catalog/versions";
 export { TIERABLE_WEAPONS, WEAPONS } from "./catalog/weapons";
 export {

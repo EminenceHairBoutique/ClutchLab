@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { CONTENT_BASELINE, computeBaselineTiers } from "../src/baseline";
-import { stableId, upsert, type SqlValue } from "../src/sql";
+import { lit, stableId, upsert, type SqlValue } from "../src/sql";
 
 /**
  * Emits supabase/seed_content.sql from the typed catalog. Deterministic:
@@ -515,6 +515,116 @@ sections.push(
         "ClutchLab sample data (fictional)",
       ]),
     ),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// Phase 4: training academy
+// ---------------------------------------------------------------------------
+
+sections.push(
+  upsert({
+    table: "skills",
+    columns: ["slug", "name", "category", "description", "sort_order", "data_status"],
+    conflictTarget: "slug",
+    rows: B.skills.map((s): SqlValue[] => [
+      s.slug, s.name, s.category, s.description, s.sortOrder, "unverified",
+    ]),
+  }),
+);
+
+sections.push(
+  upsert({
+    table: "drills",
+    columns: [
+      "slug", "name", "skill_slug", "objective", "difficulty", "prerequisites", "required_mode",
+      "weapon_note", "scope_note", "distance_note", "stance_note", "duration_minutes",
+      "repetitions", "passing_score", "advanced_score", "common_mistakes", "coaching_cues",
+      "applicable_modes", "aim_assist_variant", "data_status", "source_name", "source_date",
+    ],
+    conflictTarget: "slug",
+    rows: B.drills.map((d): SqlValue[] => [
+      d.slug, d.name, d.skillSlug, d.objective, d.difficulty, d.prerequisites, d.requiredMode,
+      d.weaponNote, d.scopeNote, d.distanceNote, d.stanceNote, d.durationMinutes,
+      d.repetitions, d.passingScore, d.advancedScore, d.commonMistakes, d.coachingCues,
+      d.applicableModes, d.aimAssistVariant, "unverified",
+      "ClutchLab editorial drill design", "2026-07-21",
+    ]),
+  }),
+);
+
+// Progression links in a second pass (FK targets must exist first). Plain
+// UPDATEs: a partial-column upsert would fail NOT NULL checks on the insert path.
+sections.push(
+  B.drills
+    .filter((d) => d.progressionSlug !== null)
+    .map(
+      (d) =>
+        `update public.drills set progression_slug = ${lit(d.progressionSlug)} where slug = ${lit(d.slug)};`,
+    )
+    .join("\n") + "\n",
+);
+
+sections.push(
+  upsert({
+    table: "benchmarks",
+    columns: ["id", "drill_slug", "level", "description", "data_status"],
+    conflictTarget: "drill_slug, level",
+    updateColumns: ["description", "data_status"],
+    rows: B.drills.flatMap((d): SqlValue[][] => {
+      const rows: SqlValue[][] = [
+        [stableId("benchmark", `${d.slug}:pass`), d.slug, "pass", d.passingScore, "unverified"],
+      ];
+      if (d.advancedScore) {
+        rows.push([
+          stableId("benchmark", `${d.slug}:advanced`), d.slug, "advanced", d.advancedScore,
+          "unverified",
+        ]);
+      }
+      return rows;
+    }),
+  }),
+);
+
+sections.push(
+  upsert({
+    table: "training_plans",
+    columns: ["slug", "name", "description", "minutes", "focus_categories", "aim_assist_focus", "data_status"],
+    conflictTarget: "slug",
+    rows: B.trainingPlans.map((p): SqlValue[] => [
+      p.slug, p.name, p.description, p.minutes, p.focusCategories, p.aimAssistFocus, "unverified",
+    ]),
+  }),
+);
+
+sections.push(
+  upsert({
+    table: "training_plan_items",
+    columns: ["id", "plan_slug", "drill_slug", "item_order", "minutes", "note"],
+    conflictTarget: "plan_slug, item_order",
+    updateColumns: ["drill_slug", "minutes", "note"],
+    rows: B.trainingPlans.flatMap((p) =>
+      p.items.map((item, index): SqlValue[] => [
+        stableId("plan_item", `${p.slug}:${index + 1}`), p.slug, item.drillSlug, index + 1,
+        item.minutes, item.note,
+      ]),
+    ),
+  }),
+);
+
+sections.push(
+  upsert({
+    table: "wow_maps",
+    columns: [
+      "slug", "name", "creator_label", "map_code", "category", "player_count", "rules",
+      "status", "data_status", "source_name",
+    ],
+    conflictTarget: "slug",
+    rows: B.wowMaps.map((m): SqlValue[] => [
+      m.slug, m.name, m.creatorLabel, m.mapCode, m.category, m.playerCount, m.rules,
+      "unverified", "sample",
+      "ClutchLab directory placeholder — real community maps enter via editorial verification",
+    ]),
   }),
 );
 
