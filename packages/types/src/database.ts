@@ -1200,6 +1200,65 @@ export interface Database {
           status: Database["public"]["Enums"]["content_status"];
         } & Timestamps
       >;
+      video_uploads: ContentTable<
+        {
+          id: string;
+          user_id: string;
+          kind: Database["public"]["Enums"]["upload_kind"];
+          label: string;
+          byte_size: number | null;
+          duration_seconds: number | null;
+          storage_path: string | null;
+          status: Database["public"]["Enums"]["upload_status"];
+        } & Timestamps
+      >;
+      analysis_jobs: ContentTable<
+        {
+          id: string;
+          upload_id: string;
+          user_id: string;
+          idempotency_key: string;
+          status: Database["public"]["Enums"]["job_status"];
+          attempts: number;
+          error: string | null;
+          started_at: string | null;
+          finished_at: string | null;
+        } & Timestamps
+      >;
+      video_observations: ContentTable<{
+        id: string;
+        job_id: string;
+        t_seconds: number;
+        category: string;
+        observation: string;
+        inference: boolean;
+        confidence: Database["public"]["Enums"]["confidence_level"];
+        created_at: string;
+      }>;
+      coaching_reports: ContentTable<
+        {
+          id: string;
+          job_id: string;
+          user_id: string;
+          executive_summary: string;
+          mistakes: Json;
+          settings_note: string | null;
+          could_not_determine: string;
+          confidence: Database["public"]["Enums"]["confidence_level"];
+          model_id: string;
+          prompt_version: string;
+          review_status: Database["public"]["Enums"]["report_review_status"];
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+        } & Timestamps
+      >;
+      coaching_recommendations: ContentTable<{
+        id: string;
+        report_id: string;
+        drill_slug: string;
+        reason: string;
+        created_at: string;
+      }>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -1321,6 +1380,18 @@ export interface Database {
         | "dismiss_report"
         | "warn_user"
         | "note";
+      upload_kind:
+        | "clip"
+        | "full_match"
+        | "training_grounds"
+        | "arena_match"
+        | "screenshot"
+        | "settings_screenshot"
+        | "controls_screenshot"
+        | "results_screenshot";
+      upload_status: "registered" | "uploaded" | "queued" | "processing" | "complete" | "failed";
+      job_status: "queued" | "running" | "succeeded" | "failed";
+      report_review_status: "pending_review" | "published" | "rejected";
     };
     CompositeTypes: Record<string, never>;
   };
