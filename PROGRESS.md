@@ -16,7 +16,7 @@ Persistent progress ledger per spec §0.1.2. A fresh session must be able to res
 | 4 | Training MVP | **done** (2026-07-22, exit gate green) |
 | 5 | Control Studio | **done** (2026-07-22, exit gate green) |
 | 6 | Community + verification | **done** (2026-07-22, exit gate green) |
-| 7 | AI Coach | not started |
+| 7 | AI Coach | **done** (2026-07-22, exit gate green) |
 | 8 | Billing + marketplace | not started |
 | 9 | Native mobile (Expo) | not started |
 
@@ -83,6 +83,10 @@ tests, all 11 routes console-error-free on a mobile viewport).
 | D18 | 2026-07-21 | Editorial baseline snapshot published with confidence `low` + evidence notes; arena modes excluded from tier seeding | Publishing clearly-labeled editorial analysis is §2.2-compliant; arena tiers deferred until researched (review task open). |
 | D13 | 2026-07-21 | Verification builds declare `APP_ENV=test`; session pages are `force-dynamic`; env validated at server boot (`instrumentation.ts`) | Production without Supabase must fail fast (spec), while CI/sandbox builds without secrets must pass the gate. Session UIs must never bake auth state into static HTML. |
 | D14 | 2026-07-21 | RLS harness drops to the `postgres` system user via `runuser` when running as root | PostgreSQL refuses to run as root; container sandboxes run as root. Non-root dev machines/CI exec directly. |
+| D19 | 2026-07-22 | AI coach lives in `packages/coach` (providers + pipeline + queue worker), not in apps/web | The worker must run without the Next.js app; one abstraction serves web, worker, and later mobile. Provider gateway (env → provider) stays in apps/web. |
+| D20 | 2026-07-22 | Mock auth mode simulates the analysis worker in-process using the SAME `runAnalysis` pipeline + mock provider; Supabase mode only queues (worker processes) | Demo stays fully self-contained and instant without violating the background-job rule for real video: the mock provider does no video processing. Production worker refuses the mock provider outright. |
+| D21 | 2026-07-22 | Mock-only affordance: signup emails starting `editor-` get the editor role | Human-review tools (§5.13.7) must be demoable + e2e-testable without a database. Unreachable in production (env validation forbids mock mode); real role grants stay server-side. |
+| D22 | 2026-07-22 | Coach quota is a single constant (10/month) enforced in the store and shown pre-upload | §5.13.6 requires surfacing quota before upload now; per-tier variation belongs to Phase 8 entitlements, avoiding scattered plan checks today. |
 
 ## Blockers (with exact unblocking steps)
 
@@ -92,6 +96,9 @@ tests, all 11 routes console-error-free on a mobile viewport).
 | No Google/Apple OAuth credentials | OAuth buttons hidden (env-gated) | Configure providers in Supabase dashboard → set `NEXT_PUBLIC_AUTH_GOOGLE=1` / `NEXT_PUBLIC_AUTH_APPLE=1`. |
 | No Sentry DSN | Error monitoring wired but disabled | Create Sentry project → set `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN`. |
 | No Stripe keys (Phase 8) | Billing not started yet anyway | Needed at Phase 8 only. |
+| No Anthropic API key/model | Coach runs the labeled mock provider; real analyses inert | Set `ANTHROPIC_API_KEY` + `AI_COACH_MODEL` in `.env` (worker env too). See AI_COACH.md. |
+| No Supabase Storage bucket | Real recording upload (signed URLs) inert; metadata flow works | With Supabase creds: create private `recordings` bucket; client PUT + `markUploaded` wire-up per AI_COACH.md. |
+| No ffmpeg in this environment | Worker analyzes metadata-only → providers refuse to fabricate → honest job failure | Bundle ffmpeg in the worker image; implement `extractFrames` hook (interface ready) per AI_COACH.md. |
 | Web research from sandbox unverified | §24.2 fact verification (PUBG 4.5/S31 dates) may be blocked by network policy | Attempt at Phase 2 start; if blocked, seed §2.1 baseline as `unverified` and record in DATA_VERIFICATION.md. |
 
 ## Phase 2 — Versioned content + meta MVP (done, 2026-07-21)
@@ -200,12 +207,43 @@ tests, all 11 routes console-error-free on a mobile viewport).
 (192 tests: 10 config + 11 ui + 16 meta-engine + 12 calibration + 30 content + 55 db/RLS +
 58 web) · `APP_ENV=test pnpm build` ✅ · `APP_ENV=test pnpm e2e` ✅ (37 tests).
 
+## Phase 7 — AI Coach (done, 2026-07-22)
+
+- Migration 0007: `video_uploads` (8 §5.13 kinds incl. screenshot subtypes) → `analysis_jobs`
+  (1:1, unique `idempotency_key`, attempts ≤5) → `video_observations` + `coaching_reports`
+  (model_id + prompt_version + confidence NOT NULL, review_status) → `coaching_recommendations`
+  (FK into drills). RLS: owners own their pipeline (cascade delete = privacy), the job-insert
+  policy re-proves upload ownership (FK checks bypass RLS), status transitions + AI artifacts are
+  worker/service-role only, editors read + review reports. 10 RLS tests.
+- `packages/coach`: `CoachProvider` interface; `AnthropicCoachProvider` (model from
+  `AI_COACH_MODEL` only, zod-validated responses, fence-tolerant JSON, retryable-vs-not errors,
+  8-frame budget); deterministic `provider.mock.ts` (all artifacts `[MOCK]`/unverified);
+  versioned prompts embedding every §5.13 safeguard; two-pass `runAnalysis` that re-validates
+  both passes, fails honestly on zero observations, and drops unknown drill slugs; monthly quota
+  (10, Phase 8 varies by tier); queue worker (`FOR UPDATE SKIP LOCKED` claim, idempotent
+  delete+insert artifact rewrite, stale-job requeue, refuses mock provider in production).
+  19 unit tests + 5 worker integration tests against the real schema.
+- Web: `/coach` (register → attach → analyze flow, quota surfaced pre-upload, mode banners,
+  boundaries stated), `/coach/reports/[id]` (full §5.13 output: timestamped top-3 mistakes,
+  drills linking into the academy, settings note only when supported, mandatory
+  could-not-determine, observation timeline with inference badges, model+prompt footer),
+  `/admin/coach` review queue + on-report editorial spot-check. 4 e2e tests including the
+  editor round trip.
+- `AI_COACH.md` shipped; SETUP.md/.env.example/CLAUDE.md updated.
+- Deviations logged: real keyframe extraction (ffmpeg) and Supabase Storage signed-URL upload are
+  implemented as interfaces + documented production steps (no creds/ffmpeg here); mock auth mode
+  simulates the worker in-process with the same pipeline (D20).
+
+**Exit gate (repo root, 2026-07-22):** `pnpm lint` ✅ · `pnpm typecheck` ✅ · `pnpm test` ✅
+(226 tests: 10 config + 11 ui + 16 meta-engine + 12 calibration + 30 content + 19 coach +
+70 db/RLS/worker + 58 web) · `APP_ENV=test pnpm build` ✅ · `APP_ENV=test pnpm e2e` ✅ (41 tests).
+
 ## Next steps (exact)
 
-1. **Phase 7 (AI Coach):** migrations for video_uploads/analysis_jobs/video_observations/
-   coaching_reports/coaching_recommendations; AI provider abstraction (Anthropic default, model
-   IDs from env/config, `provider.mock.ts` without credentials); upload flow (signed URLs with
-   size/type limits per tier); idempotent job queue with worker loop; two-pass analysis
-   (validated JSON observations → §5.13 report format) persisting model ID + prompt version +
-   confidence; human-review tools in /admin. Post-match only — never live.
-2. Then Phase 8 (billing/entitlements with Stripe interface + mock) per IMPLEMENTATION_PLAN.md.
+1. **Phase 8 (Billing + marketplace):** entitlements model (plan tiers gate coach quota, pro
+   comparisons, advanced analytics — no scattered `plan === 'pro'` checks); Stripe behind a
+   provider interface + `stripe.mock.ts` (checkout, webhooks, customer portal); subscription
+   sync into the existing `subscriptions` table; coach marketplace schema (creator profiles
+   exist) with bookings/reviews/payouts as schema + honest placeholders where Stripe Connect
+   credentials are required.
+2. Then Phase 9 (Expo app) per IMPLEMENTATION_PLAN.md.
