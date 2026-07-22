@@ -15,7 +15,7 @@ Persistent progress ledger per spec §0.1.2. A fresh session must be able to res
 | 3 | Settings + sensitivity MVP | **done** (2026-07-21, exit gate green) |
 | 4 | Training MVP | **done** (2026-07-22, exit gate green) |
 | 5 | Control Studio | **done** (2026-07-22, exit gate green) |
-| 6 | Community + verification | not started |
+| 6 | Community + verification | **done** (2026-07-22, exit gate green) |
 | 7 | AI Coach | not started |
 | 8 | Billing + marketplace | not started |
 | 9 | Native mobile (Expo) | not started |
@@ -181,11 +181,31 @@ tests, all 11 routes console-error-free on a mobile viewport).
 (182 tests: 10 config + 11 ui + 16 meta-engine + 12 calibration + 30 content + 47 db/RLS +
 56 web) · `APP_ENV=test pnpm build` ✅ · `APP_ENV=test pnpm e2e` ✅ (34 tests).
 
+## Phase 6 — Community + verification (done, 2026-07-22)
+
+- Migration 0006: posts/comments with status-driven visibility (denormalized author labels keep
+  profiles private), reactions, reports, moderation_actions, reputation_events,
+  correction_requests, creator_profiles/content. RLS enforces the moderation model end to end
+  (8 new tests, 55 db total).
+- `/community`: composer with conservative rule-based §5.16 risk screening (7 categories,
+  hold-for-review only — flags never auto-remove), post pages with comments/reactions/reports.
+- `/admin/moderation`: moderator-gated queue, remove/dismiss with a mandatory
+  moderation_actions audit row. Correction requests route to editors.
+- `MODERATION.md` policy shipped (deliverable §22.11).
+- Deviations logged: layout/settings sharing is text-based post kinds (live embeds of private
+  layouts deferred); creator portal is schema + RLS only, UI grows with the marketplace phase;
+  appeals handled as correction-kind posts.
+
+**Exit gate (repo root, 2026-07-22):** `pnpm lint` ✅ · `pnpm typecheck` ✅ · `pnpm test` ✅
+(192 tests: 10 config + 11 ui + 16 meta-engine + 12 calibration + 30 content + 55 db/RLS +
+58 web) · `APP_ENV=test pnpm build` ✅ · `APP_ENV=test pnpm e2e` ✅ (37 tests).
+
 ## Next steps (exact)
 
-1. **Phase 6 (community + verification):** migrations for posts/comments/reactions/reports/
-   moderation_actions/reputation_events/correction_requests + creator_profiles/creator_content;
-   moderated posting UI, report → moderator queue in /admin, pro-vault correction requests,
-   layout/settings sharing; MODERATION.md.
-2. Then Phase 7 (AI Coach: upload flow + job queue + provider abstraction with mock adapter)
-   per IMPLEMENTATION_PLAN.md.
+1. **Phase 7 (AI Coach):** migrations for video_uploads/analysis_jobs/video_observations/
+   coaching_reports/coaching_recommendations; AI provider abstraction (Anthropic default, model
+   IDs from env/config, `provider.mock.ts` without credentials); upload flow (signed URLs with
+   size/type limits per tier); idempotent job queue with worker loop; two-pass analysis
+   (validated JSON observations → §5.13 report format) persisting model ID + prompt version +
+   confidence; human-review tools in /admin. Post-match only — never live.
+2. Then Phase 8 (billing/entitlements with Stripe interface + mock) per IMPLEMENTATION_PLAN.md.
