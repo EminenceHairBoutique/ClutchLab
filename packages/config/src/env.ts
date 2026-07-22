@@ -34,6 +34,10 @@ const rawSchema = z.object({
   AUTH_MOCK: booleanish,
   NEXT_PUBLIC_AUTH_GOOGLE: booleanish,
   NEXT_PUBLIC_AUTH_APPLE: booleanish,
+  /** AI coach provider (spec §8.2): absent → provider.mock.ts adapter. */
+  ANTHROPIC_API_KEY: z.string().min(10).optional(),
+  /** Model ID comes from config, never hard-coded (spec convention). */
+  AI_COACH_MODEL: z.string().min(3).optional(),
 });
 
 export type ServerEnv = z.infer<typeof rawSchema> & {
@@ -74,6 +78,10 @@ export function parseServerEnv(source: EnvSource): ServerEnv {
     if (env.AUTH_MOCK) {
       issues.push("AUTH_MOCK must not be enabled in production");
     }
+  }
+
+  if (env.ANTHROPIC_API_KEY && !env.AI_COACH_MODEL) {
+    issues.push("AI_COACH_MODEL is required when ANTHROPIC_API_KEY is set (no hard-coded model IDs)");
   }
 
   if (issues.length > 0) {

@@ -149,6 +149,63 @@ export interface MockDrillResult {
   createdAt: string;
 }
 
+export interface MockUpload {
+  id: string;
+  userId: string;
+  kind: string;
+  label: string;
+  durationSeconds: number | null;
+  status: "registered" | "uploaded" | "queued" | "processing" | "complete" | "failed";
+  createdAt: string;
+}
+
+export interface MockAnalysisJob {
+  id: string;
+  uploadId: string;
+  userId: string;
+  idempotencyKey: string;
+  status: "queued" | "running" | "succeeded" | "failed";
+  attempts: number;
+  error: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+}
+
+export interface MockCoachObservation {
+  id: string;
+  jobId: string;
+  tSeconds: number;
+  category: string;
+  observation: string;
+  inference: boolean;
+  confidence: string;
+}
+
+export interface MockCoachReport {
+  id: string;
+  jobId: string;
+  userId: string;
+  executiveSummary: string;
+  mistakes: Array<{ tSeconds: number; what: string; whyItMattered: string; betterAlternative: string }>;
+  settingsNote: string | null;
+  couldNotDetermine: string;
+  confidence: string;
+  modelId: string;
+  promptVersion: string;
+  reviewStatus: "pending_review" | "published" | "rejected";
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
+export interface MockCoachRecommendation {
+  id: string;
+  reportId: string;
+  drillSlug: string;
+  reason: string;
+}
+
 const emptyProfile = (): MockProfileRecord => ({
   displayName: null,
   handle: null,
@@ -562,6 +619,195 @@ export class MockAuthStore {
     return this.drillResults.filter(
       (r) => r.userId === userId && (sessionId === undefined || r.sessionId === sessionId),
     );
+  }
+
+  // --- AI coach pipeline (uploads, jobs, observations, reports) ---
+
+  private uploads = new Map<string, MockUpload>();
+  private analysisJobs = new Map<string, MockAnalysisJob>();
+  private coachObservations: MockCoachObservation[] = [];
+  private coachReports = new Map<string, MockCoachReport>();
+  private coachRecommendations: MockCoachRecommendation[] = [];
+
+  registerUpload(
+    userId: string,
+    input: { kind: string; label: string; durationSeconds: number | null },
+  ): string {
+    const id = randomUUID();
+    this.uploads.set(id, {
+      id,
+      userId,
+      kind: input.kind,
+      label: input.label,
+      durationSeconds: input.durationSeconds,
+      status: "registered",
+      createdAt: new Date().toISOString(),
+    });
+    return id;
+  }
+
+  getUpload(userId: string, uploadId: string): MockUpload | null {
+    const upload = this.uploads.get(uploadId);
+    return upload && upload.userId === userId ? upload : null;
+  }
+
+  listUploads(userId: string): MockUpload[] {
+    return [...this.uploads.values()]
+      .filter((u) => u.userId === userId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  setUploadStatus(uploadId: string, status: MockUpload["status"]): void {
+    const upload = this.uploads.get(uploadId);
+    if (upload) upload.status = status;
+  }
+
+  /** Deleting an upload cascades away the derived pipeline (privacy). */
+  deleteUpload(userId: string, uploadId: string): boolean {
+    const upload = this.getUpload(userId, uploadId);
+    if (!upload) return false;
+    this.uploads.delete(uploadId);
+    const job = this.getJobForUpload(uploadId);
+    if (job) {
+      this.analysisJobs.delete(job.id);
+      this.coachObservations = this.coachObservations.filter((o) => o.jobId !== job.id);
+      const report = [...this.coachReports.values()].find((r) => r.jobId === job.id);
+      if (report) {
+        this.coachReports.delete(report.id);
+        this.coachRecommendations = this.coachRecommendations.filter(
+          (r) => r.reportId !== report.id,
+        );
+      }
+    }
+    return true;
+  }
+
+  getJobForUpload(uploadId: string): MockAnalysisJob | null {
+    return [...this.analysisJobs.values()].find((j) => j.uploadId === uploadId) ?? null;
+  }
+
+  countJobsSince(userId: string, sinceIso: string): number {
+    return [...this.analysisJobs.values()].filter(
+      (j) => j.userId === userId && j.createdAt >= sinceIso,
+    ).length;
+  }
+
+  /** Idempotent: one job per upload — re-requests return the existing job. */
+  createAnalysisJob(userId: string, uploadId: string): { jobId: string; created: boolean } {
+    const existing = this.getJobForUpload(uploadId);
+    if (existing) return { jobId: existing.id, created: false };
+    const id = randomUUID();
+    this.analysisJobs.set(id, {
+      id,
+      uploadId,
+      userId,
+      idempotencyKey: `analyze:${uploadId}`,
+      status: "queued",
+      attempts: 0,
+      error: null,
+      startedAt: null,
+      finishedAt: null,
+      createdAt: new Date().toISOString(),
+    });
+    this.setUploadStatus(uploadId, "queued");
+    return { jobId: id, created: true };
+  }
+
+  /** The simulated worker: transitions the job and persists the artifacts. */
+  completeAnalysisJob(
+    jobId: string,
+    result: {
+      observations: Array<{
+        tSeconds: number;
+        category: string;
+        observation: string;
+        inference: boolean;
+        confidence: string;
+      }>;
+      report: Omit<
+        MockCoachReport,
+        "id" | "jobId" | "userId" | "reviewStatus" | "reviewedBy" | "reviewedAt" | "createdAt"
+      >;
+      recommendations: Array<{ drillSlug: string; reason: string }>;
+    },
+  ): string | null {
+    const job = this.analysisJobs.get(jobId);
+    if (!job) return null;
+    const now = new Date().toISOString();
+    job.status = "succeeded";
+    job.attempts += 1;
+    job.startedAt = now;
+    job.finishedAt = now;
+    job.error = null;
+    this.setUploadStatus(job.uploadId, "complete");
+    this.coachObservations = this.coachObservations.filter((o) => o.jobId !== jobId);
+    for (const o of result.observations) {
+      this.coachObservations.push({ id: randomUUID(), jobId, ...o });
+    }
+    const reportId = randomUUID();
+    this.coachReports.set(reportId, {
+      id: reportId,
+      jobId,
+      userId: job.userId,
+      ...result.report,
+      reviewStatus: "pending_review",
+      reviewedBy: null,
+      reviewedAt: null,
+      createdAt: now,
+    });
+    for (const rec of result.recommendations) {
+      this.coachRecommendations.push({ id: randomUUID(), reportId, ...rec });
+    }
+    return reportId;
+  }
+
+  failAnalysisJob(jobId: string, error: string): void {
+    const job = this.analysisJobs.get(jobId);
+    if (!job) return;
+    const now = new Date().toISOString();
+    job.status = "failed";
+    job.attempts += 1;
+    job.startedAt = job.startedAt ?? now;
+    job.finishedAt = now;
+    job.error = error;
+    this.setUploadStatus(job.uploadId, "failed");
+  }
+
+  listObservations(jobId: string): MockCoachObservation[] {
+    return this.coachObservations
+      .filter((o) => o.jobId === jobId)
+      .sort((a, b) => a.tSeconds - b.tSeconds);
+  }
+
+  getCoachReport(reportId: string): MockCoachReport | null {
+    return this.coachReports.get(reportId) ?? null;
+  }
+
+  getCoachReportForJob(jobId: string): MockCoachReport | null {
+    return [...this.coachReports.values()].find((r) => r.jobId === jobId) ?? null;
+  }
+
+  listRecommendations(reportId: string): MockCoachRecommendation[] {
+    return this.coachRecommendations.filter((r) => r.reportId === reportId);
+  }
+
+  listReportsPendingReview(): MockCoachReport[] {
+    return [...this.coachReports.values()]
+      .filter((r) => r.reviewStatus === "pending_review")
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  reviewCoachReport(
+    editorId: string,
+    reportId: string,
+    decision: "published" | "rejected",
+  ): boolean {
+    const report = this.coachReports.get(reportId);
+    if (!report) return false;
+    report.reviewStatus = decision;
+    report.reviewedBy = editorId;
+    report.reviewedAt = new Date().toISOString();
+    return true;
   }
 
   /**
