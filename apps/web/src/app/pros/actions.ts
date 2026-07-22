@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireUser } from "@/lib/auth/gateway";
+import { checkCanCreateSensitivityProfile } from "@/lib/billing/entitlement-checks";
 import { getProStore } from "@/lib/data/pro-store";
 import { getSensitivityStore } from "@/lib/data/sensitivity-store";
 
@@ -18,6 +19,9 @@ export async function forkProAction(formData: FormData): Promise<void> {
 
   const pro = await getProStore().getPro(proSlug);
   if (!pro) throw new Error("Pro profile not found.");
+
+  const allowed = await checkCanCreateSensitivityProfile(user.id);
+  if (!allowed.ok) redirect(`/pros/${proSlug}?error=${encodeURIComponent(allowed.error)}`);
 
   const store = getSensitivityStore();
   const baseName = `Fork of ${pro.displayName}`;

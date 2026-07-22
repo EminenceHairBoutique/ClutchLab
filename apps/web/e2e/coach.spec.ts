@@ -14,6 +14,13 @@ async function signup(page: Page, prefix = "e2e-coach"): Promise<void> {
   await page.waitForURL("**/profile");
 }
 
+/** AI analysis is entitlement-gated (§14): mock-upgrade to Pro first. */
+async function upgradeToPro(page: Page): Promise<void> {
+  await page.goto("/billing");
+  await page.getByRole("button", { name: "Switch to Pro (mock)" }).click();
+  await expect(page.getByText(/Switched to pro \(mock billing/)).toBeVisible();
+}
+
 async function createAnalyzedUpload(page: Page, label: string): Promise<void> {
   await page.goto("/coach");
   await page.getByLabel("Recording type").selectOption("clip");
@@ -31,11 +38,15 @@ test("upload → analysis → honest mock report round trip", async ({ page }) =
   await signup(page);
   await page.goto("/coach");
 
-  // The page is explicit about mode, quota, and boundaries before upload.
+  // Free plan: the feature gate is explicit before any upgrade.
   await expect(page.getByRole("heading", { level: 1 })).toContainText(/AI Coach/i);
   await expect(page.getByText(/mock provider/i)).toBeVisible();
-  await expect(page.getByText(/Analyses this month: 0 of/)).toBeVisible();
+  await expect(page.getByText("AI analysis is a Pro feature")).toBeVisible();
   await expect(page.getByText(/never live assistance/i)).toBeVisible();
+
+  await upgradeToPro(page);
+  await page.goto("/coach");
+  await expect(page.getByText(/Analyses this month: 0 of 10/)).toBeVisible();
 
   const label = `Ranked final circle ${Date.now()}`;
   await createAnalyzedUpload(page, label);
@@ -64,6 +75,7 @@ test("upload → analysis → honest mock report round trip", async ({ page }) =
 
 test("deleting an upload removes the whole analysis (privacy)", async ({ page }) => {
   await signup(page);
+  await upgradeToPro(page);
   const label = `Delete me ${Date.now()}`;
   await createAnalyzedUpload(page, label);
 
@@ -77,6 +89,7 @@ test("editors spot-check reports; players see the outcome", async ({ browser }) 
   const playerContext = await browser.newContext();
   const playerPage = await playerContext.newPage();
   await signup(playerPage, "e2e-coach-player");
+  await upgradeToPro(playerPage);
   const label = `Review flow ${Date.now()}`;
   await createAnalyzedUpload(playerPage, label);
   await playerPage.getByRole("link", { name: "View report" }).click();

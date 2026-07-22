@@ -1,5 +1,6 @@
 import "server-only";
 
+import { canAnalyzeKind } from "@clutchlab/billing";
 import {
   MockCoachProvider,
   UPLOAD_KIND_LABELS,
@@ -18,6 +19,8 @@ import { z } from "zod";
 import { authMode } from "@/lib/auth/gateway";
 import { getMockAuthStore } from "@/lib/auth/mock-store";
 import { createServerSupabase } from "@/lib/auth/supabase-server";
+
+import { getUserEntitlements } from "./billing-store";
 
 /**
  * Coach data store. Mock mode is a fully self-contained demo: the in-memory
@@ -105,6 +108,20 @@ export interface CoachStore {
 const drillNameBySlug = new Map(DRILLS.map((d) => [d.slug, d.name]));
 const mistakesColumnSchema = z.array(mistakeSchema);
 
+/** §14 entitlement gate for one analysis request; null = allowed. */
+async function checkAnalysisEntitlement(userId: string, kind: string): Promise<string | null> {
+  const { plan, entitlements } = await getUserEntitlements(userId);
+  if (entitlements.coachAnalysesPerMonth === 0) {
+    return "AI analysis is included with Pro and Elite — upgrade on the Billing page.";
+  }
+  if (!canAnalyzeKind(plan, kind)) {
+    return kind === "full_match"
+      ? "Full-match reviews are an Elite feature — upgrade on the Billing page."
+      : "This recording type is not included in your plan.";
+  }
+  return null;
+}
+
 function parseMistakes(reportId: string, raw: unknown): Mistake[] {
   const parsed = mistakesColumnSchema.safeParse(raw);
   if (!parsed.success) {
@@ -117,8 +134,12 @@ function parseMistakes(reportId: string, raw: unknown): Mistake[] {
 
 class MockCoachStore implements CoachStore {
   async quota(userId: string): Promise<QuotaState> {
+    const { entitlements } = await getUserEntitlements(userId);
     const windowStart = currentQuotaWindowStart().toISOString();
-    return quotaState(getMockAuthStore().countJobsSince(userId, windowStart));
+    return quotaState(
+      getMockAuthStore().countJobsSince(userId, windowStart),
+      entitlements.coachAnalysesPerMonth,
+    );
   }
 
   async registerUpload(
@@ -147,6 +168,8 @@ class MockCoachStore implements CoachStore {
     if (upload.status !== "uploaded") {
       return { ok: false, error: "Attach the recording before requesting analysis." };
     }
+    const entitlementError = await checkAnalysisEntitlement(userId, upload.kind);
+    if (entitlementError) return { ok: false, error: entitlementError };
     const quota = await this.quota(userId);
     if (quota.remaining <= 0) {
       return { ok: false, error: `Monthly analysis limit reached (${quota.limit}).` };
@@ -275,7 +298,8 @@ class MockCoachStore implements CoachStore {
 }
 
 class SupabaseCoachStore implements CoachStore {
-  async quota(_userId: string): Promise<QuotaState> {
+  async quota(userId: string): Promise<QuotaState> {
+    const { entitlements } = await getUserEntitlements(userId);
     const supabase = await createServerSupabase();
     const windowStart = currentQuotaWindowStart().toISOString();
     // RLS scopes the count to the caller's own jobs.
@@ -284,7 +308,7 @@ class SupabaseCoachStore implements CoachStore {
       .select("id", { count: "exact", head: true })
       .gte("created_at", windowStart);
     if (error) throw new Error(`quota read failed: ${error.message}`);
-    return quotaState(count ?? 0);
+    return quotaState(count ?? 0, entitlements.coachAnalysesPerMonth);
   }
 
   async registerUpload(
@@ -341,7 +365,7 @@ class SupabaseCoachStore implements CoachStore {
     const supabase = await createServerSupabase();
     const { data: upload, error: uploadError } = await supabase
       .from("video_uploads")
-      .select("id, status")
+      .select("id, status, kind")
       .eq("id", uploadId)
       .maybeSingle();
     if (uploadError) return { ok: false, error: uploadError.message };
@@ -349,6 +373,8 @@ class SupabaseCoachStore implements CoachStore {
     if (upload.status !== "uploaded") {
       return { ok: false, error: "Attach the recording before requesting analysis." };
     }
+    const entitlementError = await checkAnalysisEntitlement(userId, upload.kind);
+    if (entitlementError) return { ok: false, error: entitlementError };
     const quota = await this.quota(userId);
     if (quota.remaining <= 0) {
       return { ok: false, error: `Monthly analysis limit reached (${quota.limit}).` };

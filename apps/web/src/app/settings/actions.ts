@@ -15,6 +15,7 @@ import { z } from "zod";
 
 import { authMode, requireUser } from "@/lib/auth/gateway";
 import { createServerSupabase } from "@/lib/auth/supabase-server";
+import { checkCanCreateSensitivityProfile } from "@/lib/billing/entitlement-checks";
 import { getSensitivityStore } from "@/lib/data/sensitivity-store";
 
 export interface SensitivityFormState {
@@ -36,6 +37,9 @@ export async function createProfileAction(
   const user = await requireUser();
   const parsed = nameSchema.safeParse(formData.get("name"));
   if (!parsed.success) return { error: "Profile name must be 1–60 characters.", ok: false };
+
+  const allowed = await checkCanCreateSensitivityProfile(user.id);
+  if (!allowed.ok) return { error: allowed.error, ok: false };
 
   const result = await getSensitivityStore().createProfile(user.id, parsed.data, defaultValues());
   if (!result.ok) return { error: result.error, ok: false };

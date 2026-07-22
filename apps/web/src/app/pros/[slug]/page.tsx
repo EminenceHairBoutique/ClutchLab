@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 
 interface ProPageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ compare?: string }>;
+  searchParams: Promise<{ compare?: string; error?: string }>;
 }
 
 export async function generateMetadata({ params }: ProPageProps): Promise<Metadata> {
@@ -40,7 +40,7 @@ function splitKey(key: string): { family: SensitivityFamily; scope: SensitivityS
 
 export default async function ProPage({ params, searchParams }: ProPageProps) {
   const { slug } = await params;
-  const { compare } = await searchParams;
+  const { compare, error } = await searchParams;
   const store = getProStore();
   const pro = await store.getPro(slug);
   if (!pro) notFound();
@@ -80,6 +80,15 @@ export default async function ProPage({ params, searchParams }: ProPageProps) {
         </div>
         {pro.notes && <p className="max-w-2xl text-sm text-warning">{pro.notes}</p>}
       </div>
+
+      {error && (
+        <p
+          role="alert"
+          className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger"
+        >
+          {error}
+        </p>
+      )}
 
       <Card>
         <CardContent className="grid grid-cols-2 gap-3 pt-4 sm:grid-cols-5">

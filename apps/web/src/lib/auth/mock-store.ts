@@ -628,6 +628,26 @@ export class MockAuthStore {
     );
   }
 
+  // --- Billing (mock plan state; Supabase mode reads subscriptions) ---
+
+  private plans = new Map<
+    string,
+    { plan: "free" | "pro" | "elite"; status: string; cancelAtPeriodEnd: boolean }
+  >();
+
+  getPlanState(userId: string): {
+    plan: "free" | "pro" | "elite";
+    status: string;
+    cancelAtPeriodEnd: boolean;
+  } {
+    return this.plans.get(userId) ?? { plan: "free", status: "active", cancelAtPeriodEnd: false };
+  }
+
+  /** Mock checkout/portal outcome — mirrors what Stripe webhooks would write. */
+  setPlanState(userId: string, plan: "free" | "pro" | "elite", cancelAtPeriodEnd = false): void {
+    this.plans.set(userId, { plan, status: "active", cancelAtPeriodEnd });
+  }
+
   // --- AI coach pipeline (uploads, jobs, observations, reports) ---
 
   private uploads = new Map<string, MockUpload>();

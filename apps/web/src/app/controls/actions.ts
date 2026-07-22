@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireUser } from "@/lib/auth/gateway";
+import { checkCanCreateControlLayout } from "@/lib/billing/entitlement-checks";
 import { analyzeLayout } from "@/lib/controls/ergonomics";
 import { getControlsStore } from "@/lib/data/controls-store";
 
@@ -36,6 +37,9 @@ export async function createLayoutAction(
   const templateSlug = z.string().parse(formData.get("template"));
   const template = LAYOUT_TEMPLATES.find((t) => t.slug === templateSlug);
   if (!template) return { error: "Unknown template.", ok: false };
+
+  const allowed = await checkCanCreateControlLayout(user.id);
+  if (!allowed.ok) return { error: allowed.error, ok: false };
 
   const positions = template.positions.map((p) => ({ slug: p.slug, x: p.x, y: p.y, size: p.size }));
   const analysis = analyzeLayout(positions);

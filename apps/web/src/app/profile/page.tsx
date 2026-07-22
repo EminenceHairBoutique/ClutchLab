@@ -66,11 +66,16 @@ export default async function ProfilePage() {
             Signed in as <span className="text-foreground">{user.email ?? user.id}</span>
           </p>
         </div>
-        <form action={signOutAction}>
-          <Button type="submit" variant="ghost">
-            Sign out
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href="/billing">Plan &amp; billing</Link>
           </Button>
-        </form>
+          <form action={signOutAction}>
+            <Button type="submit" variant="ghost">
+              Sign out
+            </Button>
+          </form>
+        </div>
       </div>
 
       <Card>

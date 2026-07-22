@@ -102,6 +102,23 @@ export default async function CoachPage({
         </Card>
       ) : (
         <>
+          {quota !== null && quota.limit === 0 && (
+            <Card className="border-accent/50">
+              <CardHeader>
+                <CardTitle className="text-sm">AI analysis is a Pro feature</CardTitle>
+                <CardDescription>
+                  You can register recordings now, but running an analysis needs a Pro plan
+                  (10/month) or Elite (30/month, including full-match reviews).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild variant="accent" size="sm">
+                  <Link href="/billing">View plans</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle>Register a recording</CardTitle>

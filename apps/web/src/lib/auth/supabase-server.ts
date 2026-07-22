@@ -1,6 +1,7 @@
 import { getServerEnv } from "@clutchlab/config/env";
 import type { Database } from "@clutchlab/types";
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 import type { AuthActionResult, AuthGateway, AuthUser } from "./types";
@@ -32,6 +33,23 @@ export async function createServerSupabase() {
       },
     },
   );
+}
+
+/**
+ * Service-role client for cookie-less server contexts (Stripe webhooks, jobs).
+ * BYPASSES RLS — use only where the request is authenticated by other means
+ * (e.g. a verified webhook signature). Never import from client code.
+ */
+export function createServiceSupabase() {
+  const env = getServerEnv();
+  if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error(
+      "Service-role Supabase is not configured — check NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY.",
+    );
+  }
+  return createClient<Database>(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 export class SupabaseAuthGateway implements AuthGateway {
