@@ -53,6 +53,30 @@ export interface MockCode {
   createdAt: string;
 }
 
+export interface MockTrainingSession {
+  id: string;
+  userId: string;
+  title: string;
+  minutesPlanned: number;
+  drillSlugs: string[];
+  planSlug: string | null;
+  status: "planned" | "in_progress" | "completed" | "abandoned";
+  startedAt: string;
+  completedAt: string | null;
+  note: string | null;
+}
+
+export interface MockDrillResult {
+  id: string;
+  userId: string;
+  sessionId: string | null;
+  drillSlug: string;
+  passed: boolean | null;
+  selfRating: number | null;
+  metricNote: string | null;
+  createdAt: string;
+}
+
 const emptyProfile = (): MockProfileRecord => ({
   displayName: null,
   handle: null,
@@ -212,6 +236,77 @@ export class MockAuthStore {
 
   listCodes(userId: string, profileId: string | null): MockCode[] {
     return this.codes.filter((c) => c.userId === userId && c.profileId === profileId);
+  }
+
+  // --- Training sessions + drill results ---
+
+  private trainingSessions = new Map<string, MockTrainingSession>();
+  private drillResults: MockDrillResult[] = [];
+
+  createTrainingSession(
+    userId: string,
+    input: { title: string; minutesPlanned: number; drillSlugs: string[]; planSlug: string | null },
+  ): string {
+    const id = randomUUID();
+    this.trainingSessions.set(id, {
+      id,
+      userId,
+      title: input.title,
+      minutesPlanned: input.minutesPlanned,
+      drillSlugs: input.drillSlugs,
+      planSlug: input.planSlug,
+      status: "in_progress",
+      startedAt: new Date().toISOString(),
+      completedAt: null,
+      note: null,
+    });
+    return id;
+  }
+
+  getTrainingSession(userId: string, id: string): MockTrainingSession | null {
+    const session = this.trainingSessions.get(id);
+    return session && session.userId === userId ? session : null;
+  }
+
+  listTrainingSessions(userId: string): MockTrainingSession[] {
+    return [...this.trainingSessions.values()]
+      .filter((s) => s.userId === userId)
+      .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+  }
+
+  completeTrainingSession(userId: string, id: string, note: string | null): boolean {
+    const session = this.getTrainingSession(userId, id);
+    if (!session) return false;
+    session.status = "completed";
+    session.completedAt = new Date().toISOString();
+    session.note = note;
+    return true;
+  }
+
+  logDrillResult(
+    userId: string,
+    sessionId: string | null,
+    drillSlug: string,
+    passed: boolean | null,
+    selfRating: number | null,
+    metricNote: string | null,
+  ): void {
+    this.drillResults.push({
+      id: randomUUID(),
+      userId,
+      sessionId,
+      drillSlug,
+      passed,
+      selfRating,
+      metricNote,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  listDrillResults(userId: string, sessionId?: string): MockDrillResult[] {
+    return this.drillResults.filter(
+      (r) => r.userId === userId && (sessionId === undefined || r.sessionId === sessionId),
+    );
   }
 
   /**

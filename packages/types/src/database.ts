@@ -933,6 +933,129 @@ export interface Database {
         note: string | null;
         created_at: string;
       }>;
+      skills: ContentTable<
+        {
+          slug: string;
+          name: string;
+          category: string;
+          description: string | null;
+          sort_order: number;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & Timestamps
+      >;
+      drills: ContentTable<
+        {
+          slug: string;
+          name: string;
+          skill_slug: string;
+          objective: string;
+          difficulty: Database["public"]["Enums"]["drill_difficulty"];
+          prerequisites: string | null;
+          required_mode: string | null;
+          required_map: string | null;
+          weapon_note: string | null;
+          scope_note: string | null;
+          distance_note: string | null;
+          stance_note: string | null;
+          duration_minutes: number;
+          repetitions: string | null;
+          passing_score: string;
+          advanced_score: string | null;
+          common_mistakes: string | null;
+          coaching_cues: string | null;
+          progression_slug: string | null;
+          regression_slug: string | null;
+          applicable_modes: string[];
+          aim_assist_variant: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+          last_verified_at: string | null;
+        } & SourceFields &
+          Timestamps
+      >;
+      drill_versions: ContentTable<
+        {
+          id: string;
+          drill_slug: string;
+          game_version_id: string;
+          change_note: string | null;
+          retest_required: boolean;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & Timestamps
+      >;
+      drill_steps: ContentTable<{
+        id: string;
+        drill_slug: string;
+        step_order: number;
+        instruction: string;
+      }>;
+      training_plans: ContentTable<
+        {
+          slug: string;
+          name: string;
+          description: string;
+          minutes: number;
+          focus_categories: string[];
+          aim_assist_focus: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & Timestamps
+      >;
+      training_plan_items: ContentTable<{
+        id: string;
+        plan_slug: string;
+        drill_slug: string;
+        item_order: number;
+        minutes: number;
+        note: string | null;
+      }>;
+      benchmarks: ContentTable<
+        {
+          id: string;
+          drill_slug: string;
+          level: string;
+          description: string;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & Timestamps
+      >;
+      user_training_sessions: ContentTable<
+        {
+          id: string;
+          user_id: string;
+          plan_slug: string | null;
+          title: string;
+          minutes_planned: number;
+          status: Database["public"]["Enums"]["session_status"];
+          drill_slugs: string[];
+          started_at: string | null;
+          completed_at: string | null;
+          note: string | null;
+        } & Timestamps
+      >;
+      drill_results: ContentTable<{
+        id: string;
+        user_id: string;
+        session_id: string | null;
+        drill_slug: string;
+        passed: boolean | null;
+        self_rating: number | null;
+        metric_note: string | null;
+        created_at: string;
+      }>;
+      wow_maps: ContentTable<
+        {
+          slug: string;
+          name: string;
+          creator_label: string | null;
+          map_code: string | null;
+          region_note: string | null;
+          category: string;
+          player_count: string | null;
+          rules: string | null;
+          status: Database["public"]["Enums"]["wow_status"];
+          last_verified_at: string | null;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & SourceFields &
+          Timestamps
+      >;
     };
     Views: Record<string, never>;
     Functions: {
@@ -1022,6 +1145,9 @@ export interface Database {
         | "expired"
         | "sample";
       code_kind: "sensitivity" | "controls";
+      drill_difficulty: "beginner" | "intermediate" | "advanced";
+      session_status: "planned" | "in_progress" | "completed" | "abandoned";
+      wow_status: "active" | "unverified" | "retired";
     };
     CompositeTypes: Record<string, never>;
   };
