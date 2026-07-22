@@ -79,11 +79,12 @@ describe.runIf(available)("training RLS + seed integrity", () => {
   });
 
   it("players cannot edit the drill catalog", async () => {
-    await expectPgErrorCode(
-      db.asUser(alice, (tx) =>
-        tx`update public.drills set passing_score = 'free wins' where slug = 'first_ten_reddot'`,
-      ),
-      "42501",
+    const updated = await db.asUser(alice, (tx) =>
+      tx`update public.drills set passing_score = 'free wins' where slug = 'first_ten_reddot'
+         returning slug`,
     );
+    expect(updated).toHaveLength(0);
+    const unchanged = await db.sql`select passing_score from public.drills where slug = 'first_ten_reddot'`;
+    expect(unchanged[0]?.passing_score).not.toBe("free wins");
   });
 });
