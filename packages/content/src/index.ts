@@ -21,6 +21,14 @@ export {
   settingExplainerSchema,
   type SettingExplainer,
 } from "./catalog/settings";
+export {
+  CONTROL_ELEMENTS,
+  LAYOUT_TEMPLATES,
+  controlElementSchema,
+  type ControlElementRecord,
+  type LayoutTemplate,
+  type TemplatePosition,
+} from "./catalog/controls";
 export { SOURCES } from "./catalog/sources";
 export {
   DRILLS,
@@ -60,4 +68,5 @@ export {
   type SourceRecord,
   type WeaponRecord,
 } from "./schemas";
-export { lit, stableId, upsert } from "./sql";
+// NOTE: ./sql (seed-generation helpers) is intentionally NOT re-exported —
+// it depends on node:crypto and this index is consumed by client bundles.

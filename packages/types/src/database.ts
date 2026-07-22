@@ -1056,6 +1056,60 @@ export interface Database {
         } & SourceFields &
           Timestamps
       >;
+      control_elements: ContentTable<
+        {
+          slug: string;
+          name: string;
+          description: string | null;
+          default_size: number;
+          category: string;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & Timestamps
+      >;
+      control_layouts: ContentTable<
+        {
+          id: string;
+          user_id: string;
+          name: string;
+          finger_count: number;
+          device_note: string | null;
+          active_version_id: string | null;
+        } & Timestamps
+      >;
+      control_layout_versions: ContentTable<{
+        id: string;
+        layout_id: string;
+        version_no: number;
+        note: string | null;
+        origin: string;
+        created_at: string;
+      }>;
+      control_positions: ContentTable<{
+        id: string;
+        version_id: string;
+        element_slug: string;
+        x: number;
+        y: number;
+        size: number;
+      }>;
+      control_analysis: ContentTable<{
+        id: string;
+        version_id: string;
+        ergonomics_score: number;
+        findings: Json;
+        workloads: Json;
+        engine_version: string;
+        created_at: string;
+      }>;
+      control_test_results: ContentTable<{
+        id: string;
+        user_id: string;
+        version_id: string | null;
+        drill_slug: string;
+        passed: boolean | null;
+        note: string | null;
+        created_at: string;
+      }>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -1148,6 +1202,7 @@ export interface Database {
       drill_difficulty: "beginner" | "intermediate" | "advanced";
       session_status: "planned" | "in_progress" | "completed" | "abandoned";
       wow_status: "active" | "unverified" | "retired";
+      finger_zone: "left_thumb" | "right_thumb" | "left_index" | "right_index" | "other";
     };
     CompositeTypes: Record<string, never>;
   };

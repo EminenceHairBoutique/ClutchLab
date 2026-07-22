@@ -1032,3 +1032,32 @@ on conflict (slug) do update set
     status = excluded.status,
     data_status = excluded.data_status,
     source_name = excluded.source_name;
+
+insert into public.control_elements (slug, name, category, default_size, description, data_status) values
+  ('movement_stick', 'Movement stick', 'movement', 0.26, 'Left-hand locomotion joystick.', 'unverified'),
+  ('sprint', 'Sprint', 'movement', 0.07, 'Sprint lock toggle.', 'unverified'),
+  ('fire_left', 'Fire (left)', 'combat', 0.11, 'Mirrored fire for index or second thumb.', 'unverified'),
+  ('fire_right', 'Fire (right)', 'combat', 0.13, 'Primary fire button.', 'unverified'),
+  ('scope', 'ADS / scope', 'combat', 0.09, 'Aim-down-sights toggle.', 'unverified'),
+  ('peek_left', 'Peek left', 'combat', 0.07, 'Lean left.', 'unverified'),
+  ('peek_right', 'Peek right', 'combat', 0.07, 'Lean right.', 'unverified'),
+  ('crouch', 'Crouch', 'movement', 0.08, 'Crouch toggle.', 'unverified'),
+  ('prone', 'Prone', 'movement', 0.07, 'Prone toggle.', 'unverified'),
+  ('jump', 'Jump / vault', 'movement', 0.09, 'Jump and vault.', 'unverified'),
+  ('reload', 'Reload', 'combat', 0.07, 'Magazine reload.', 'unverified'),
+  ('weapon_slot_1', 'Weapon 1', 'combat', 0.07, 'Primary weapon slot.', 'unverified'),
+  ('weapon_slot_2', 'Weapon 2', 'combat', 0.07, 'Secondary weapon slot.', 'unverified'),
+  ('throwable', 'Throwable', 'utility', 0.07, 'Grenade wheel trigger.', 'unverified'),
+  ('heal', 'Heal', 'utility', 0.07, 'Smart healing prompt.', 'unverified'),
+  ('free_look', 'Free look', 'camera', 0.06, 'Eye camera.', 'unverified'),
+  ('backpack', 'Backpack', 'misc', 0.06, 'Inventory.', 'unverified'),
+  ('map_ping', 'Map / ping', 'misc', 0.06, 'Map open and pings.', 'unverified'),
+  ('quick_scope_switch', 'Quick scope switch', 'combat', 0.06, 'Swap scope magnification.', 'unverified'),
+  ('canted_sight', 'Canted sight', 'combat', 0.06, 'Toggle canted sight.', 'unverified'),
+  ('fpp_swap', 'FPP swap', 'camera', 0.06, 'TPP/FPP camera switch.', 'unverified')
+on conflict (slug) do update set
+    name = excluded.name,
+    category = excluded.category,
+    default_size = excluded.default_size,
+    description = excluded.description,
+    data_status = excluded.data_status;

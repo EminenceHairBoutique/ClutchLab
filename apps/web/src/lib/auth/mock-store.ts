@@ -53,6 +53,39 @@ export interface MockCode {
   createdAt: string;
 }
 
+export interface MockControlPosition {
+  slug: string;
+  x: number;
+  y: number;
+  size: number;
+}
+
+export interface MockControlAnalysis {
+  score: number;
+  findings: Array<{ severity: string; text: string }>;
+  workloads: Record<string, string[]>;
+  engineVersion: string;
+}
+
+export interface MockControlVersion {
+  id: string;
+  versionNo: number;
+  note: string | null;
+  origin: string;
+  createdAt: string;
+  positions: MockControlPosition[];
+  analysis: MockControlAnalysis;
+}
+
+export interface MockControlLayout {
+  id: string;
+  userId: string;
+  name: string;
+  fingerCount: number;
+  activeVersionId: string;
+  versions: MockControlVersion[];
+}
+
 export interface MockTrainingSession {
   id: string;
   userId: string;
@@ -236,6 +269,80 @@ export class MockAuthStore {
 
   listCodes(userId: string, profileId: string | null): MockCode[] {
     return this.codes.filter((c) => c.userId === userId && c.profileId === profileId);
+  }
+
+  // --- Control layouts (immutable versions, same shape as sensitivity) ---
+
+  private controlLayouts = new Map<string, MockControlLayout>();
+
+  listControlLayouts(userId: string): MockControlLayout[] {
+    return [...this.controlLayouts.values()]
+      .filter((l) => l.userId === userId)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  getControlLayout(userId: string, layoutId: string): MockControlLayout | null {
+    const layout = this.controlLayouts.get(layoutId);
+    return layout && layout.userId === userId ? layout : null;
+  }
+
+  createControlLayout(
+    userId: string,
+    name: string,
+    fingerCount: number,
+    positions: MockControlPosition[],
+    analysis: MockControlAnalysis,
+  ): { ok: true; layoutId: string } | { ok: false; error: string } {
+    const exists = [...this.controlLayouts.values()].some(
+      (l) => l.userId === userId && l.name === name,
+    );
+    if (exists) return { ok: false, error: "You already have a layout with that name." };
+    const layoutId = randomUUID();
+    const versionId = randomUUID();
+    this.controlLayouts.set(layoutId, {
+      id: layoutId,
+      userId,
+      name,
+      fingerCount,
+      activeVersionId: versionId,
+      versions: [
+        {
+          id: versionId,
+          versionNo: 1,
+          note: "From template",
+          origin: "template",
+          createdAt: new Date().toISOString(),
+          positions: positions.map((pos) => ({ ...pos })),
+          analysis,
+        },
+      ],
+    });
+    return { ok: true, layoutId };
+  }
+
+  appendControlVersion(
+    userId: string,
+    layoutId: string,
+    positions: MockControlPosition[],
+    note: string,
+    origin: string,
+    analysis: MockControlAnalysis,
+  ): { ok: true; versionNo: number } | { ok: false; error: string } {
+    const layout = this.getControlLayout(userId, layoutId);
+    if (!layout) return { ok: false, error: "Layout not found." };
+    const versionNo = Math.max(...layout.versions.map((v) => v.versionNo)) + 1;
+    const versionId = randomUUID();
+    layout.versions.push({
+      id: versionId,
+      versionNo,
+      note,
+      origin,
+      createdAt: new Date().toISOString(),
+      positions: positions.map((pos) => ({ ...pos })),
+      analysis,
+    });
+    layout.activeVersionId = versionId;
+    return { ok: true, versionNo };
   }
 
   // --- Training sessions + drill results ---

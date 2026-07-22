@@ -11,7 +11,7 @@ const ROUTES = [
   { path: "/meta", heading: /meta/i },
   { path: "/weapons", heading: /weapons/i },
   { path: "/settings", heading: /settings/i },
-  { path: "/controls", heading: /controls/i },
+  { path: "/controls", heading: /control layout studio/i },
   { path: "/training", heading: /training/i },
   { path: "/coach", heading: /coach/i },
   { path: "/maps", heading: /maps/i },

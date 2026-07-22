@@ -1,4 +1,6 @@
 import { CALIBRATION_STEPS } from "@clutchlab/calibration";
+
+import { CONTROL_ELEMENTS } from "../src/catalog/controls";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -624,6 +626,21 @@ sections.push(
       m.slug, m.name, m.creatorLabel, m.mapCode, m.category, m.playerCount, m.rules,
       "unverified", "sample",
       "ClutchLab directory placeholder — real community maps enter via editorial verification",
+    ]),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// Phase 5: control element catalog
+// ---------------------------------------------------------------------------
+
+sections.push(
+  upsert({
+    table: "control_elements",
+    columns: ["slug", "name", "category", "default_size", "description", "data_status"],
+    conflictTarget: "slug",
+    rows: CONTROL_ELEMENTS.map((e): SqlValue[] => [
+      e.slug, e.name, e.category, e.defaultSize, e.description, "unverified",
     ]),
   }),
 );
