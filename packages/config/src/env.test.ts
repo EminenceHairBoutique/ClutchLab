@@ -50,6 +50,33 @@ describe("parseServerEnv", () => {
     expect(parseServerEnv({ AUTH_MOCK: "0" }).AUTH_MOCK).toBe(false);
     expect(parseServerEnv({ NEXT_PUBLIC_AUTH_GOOGLE: "1" }).NEXT_PUBLIC_AUTH_GOOGLE).toBe(true);
   });
+
+  it("requires a model ID whenever the AI key is set (no hard-coded models)", () => {
+    expect(() => parseServerEnv({ ANTHROPIC_API_KEY: "sk-ant-test-key" })).toThrow(
+      /AI_COACH_MODEL is required/,
+    );
+    const env = parseServerEnv({
+      ANTHROPIC_API_KEY: "sk-ant-test-key",
+      AI_COACH_MODEL: "model-from-config",
+    });
+    expect(env.AI_COACH_MODEL).toBe("model-from-config");
+  });
+
+  it("requires webhook secret and price IDs whenever the Stripe key is set", () => {
+    expect(() => parseServerEnv({ STRIPE_SECRET_KEY: "sk_test_123456" })).toThrow(
+      /STRIPE_WEBHOOK_SECRET is required/,
+    );
+    expect(() => parseServerEnv({ STRIPE_SECRET_KEY: "sk_test_123456" })).toThrow(
+      /STRIPE_PRICE_PRO and STRIPE_PRICE_ELITE are required/,
+    );
+    const env = parseServerEnv({
+      STRIPE_SECRET_KEY: "sk_test_123456",
+      STRIPE_WEBHOOK_SECRET: "whsec_123456789",
+      STRIPE_PRICE_PRO: "price_pro",
+      STRIPE_PRICE_ELITE: "price_elite",
+    });
+    expect(env.STRIPE_PRICE_PRO).toBe("price_pro");
+  });
 });
 
 describe("resolveAuthMode", () => {

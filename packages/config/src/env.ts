@@ -38,6 +38,12 @@ const rawSchema = z.object({
   ANTHROPIC_API_KEY: z.string().min(10).optional(),
   /** Model ID comes from config, never hard-coded (spec convention). */
   AI_COACH_MODEL: z.string().min(3).optional(),
+  /** Stripe (Phase 8): absent → mock billing (dev/test only). Server-side only. */
+  STRIPE_SECRET_KEY: z.string().min(10).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(10).optional(),
+  /** Price IDs come from config, never hard-coded. */
+  STRIPE_PRICE_PRO: z.string().min(3).optional(),
+  STRIPE_PRICE_ELITE: z.string().min(3).optional(),
 });
 
 export type ServerEnv = z.infer<typeof rawSchema> & {
@@ -82,6 +88,18 @@ export function parseServerEnv(source: EnvSource): ServerEnv {
 
   if (env.ANTHROPIC_API_KEY && !env.AI_COACH_MODEL) {
     issues.push("AI_COACH_MODEL is required when ANTHROPIC_API_KEY is set (no hard-coded model IDs)");
+  }
+
+  if (env.STRIPE_SECRET_KEY) {
+    if (!env.STRIPE_WEBHOOK_SECRET) {
+      issues.push("STRIPE_WEBHOOK_SECRET is required when STRIPE_SECRET_KEY is set");
+    }
+    if (!env.STRIPE_PRICE_PRO || !env.STRIPE_PRICE_ELITE) {
+      issues.push(
+        "STRIPE_PRICE_PRO and STRIPE_PRICE_ELITE are required when STRIPE_SECRET_KEY is set " +
+          "(price IDs come from config, never code)",
+      );
+    }
   }
 
   if (issues.length > 0) {
