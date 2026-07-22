@@ -38,6 +38,24 @@ complete annotated list; the essentials:
 > Production env validation **refuses** mock auth/billing/coach — configure the real services or
 > the build stops. That is intentional (no accidental mock in prod).
 
+### Troubleshooting: every request returns 500 (`EnvValidationError`)
+
+The instrumentation hook validates env at boot; invalid config crashes every request. Two common causes:
+
+- **Blank variables.** Don't leave `APP_ENV=` / `AUTH_MOCK=` (or any var) set to an empty string —
+  a common footgun when pasting `.env.example`. Either give them a real value or **delete the
+  variable entirely.** (The app now coerces blank → unset, but old deployments may still carry
+  empty values — clear them and redeploy.)
+- **Missing Supabase in production.** With `NODE_ENV=production` (Vercel's default) and no
+  `APP_ENV` override, the app requires the Supabase vars and refuses to boot without them. To fix,
+  pick one:
+  - **Mock preview (fastest):** set `APP_ENV=test` → boots in mock mode (visible banner, data
+    resets). Good for a UI preview without a backend.
+  - **Real production:** set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+    `SUPABASE_SERVICE_ROLE_KEY` (+ `NEXT_PUBLIC_APP_URL`), then run migrate + seed below.
+
+  After changing env vars, **redeploy** (env changes don't apply to an existing deployment).
+
 ## Database migrate + seed (once per environment)
 
 Run from a machine that can reach Supabase (this repo's sandbox could not — the direct DB host is
