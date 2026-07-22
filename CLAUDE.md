@@ -52,6 +52,7 @@ supabase/migrations   Supabase-compatible SQL (runs unchanged on real Supabase)
 supabase/seed.sql     Roles, permissions, device KB · seed_content.sql = GENERATED, don't edit
 supabase/tests        Auth shim for the local harness (never run against real Supabase)
 packages/calibration  §5.7 sensitivity model + 14-step guided calibration flow
+packages/coach        §5.13 AI provider abstraction, two-pass pipeline, queue worker (AI_COACH.md)
 apps/mobile           Phase 9 (Expo)
 ```
 

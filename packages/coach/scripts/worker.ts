@@ -28,12 +28,22 @@ async function main(): Promise<void> {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const model = process.env.AI_COACH_MODEL;
+  const appEnv = process.env.APP_ENV ?? process.env.NODE_ENV ?? "development";
   let provider: CoachProvider;
   if (apiKey && model) {
     provider = new AnthropicCoachProvider({ apiKey, model });
   } else {
     if (apiKey && !model) {
       console.error("coach-worker: AI_COACH_MODEL is required when ANTHROPIC_API_KEY is set");
+      process.exitCode = 1;
+      return;
+    }
+    if (appEnv === "production") {
+      // Mock analyses must never reach production users, labeled or not.
+      console.error(
+        "coach-worker: refusing to run the MOCK provider in production — " +
+          "set ANTHROPIC_API_KEY and AI_COACH_MODEL.",
+      );
       process.exitCode = 1;
       return;
     }

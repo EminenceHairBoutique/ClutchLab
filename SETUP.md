@@ -53,6 +53,17 @@ Supabase project, regenerate instead:
 supabase gen types typescript --linked > packages/types/src/database.ts
 ```
 
+## AI coach provider + worker
+
+Without `ANTHROPIC_API_KEY`, the coach runs the clearly-labeled mock provider (dev/test only —
+the worker refuses mock in production). To go real:
+
+1. Set `ANTHROPIC_API_KEY` **and** `AI_COACH_MODEL` (model IDs live in config, never code).
+2. Create a private `recordings` Storage bucket (signed-URL uploads; path `<user_id>/<upload_id>.mp4`).
+3. Run the queue worker on a schedule:
+   `DATABASE_URL=... pnpm --filter @clutchlab/coach worker`
+   (bundle ffmpeg in the worker image for keyframe extraction — see `AI_COACH.md`).
+
 ## Error monitoring
 
 Set `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN`. Without them Sentry code stays dormant (and mostly
@@ -72,5 +83,5 @@ unshipped). Source-map upload is intentionally not wired yet — add `withSentry
 
 ## Current credential blockers
 
-Tracked with unblocking steps in `PROGRESS.md`: Supabase project, Google/Apple OAuth, Sentry DSN,
-Stripe (Phase 8).
+Tracked with unblocking steps in `PROGRESS.md`: Supabase project (+ `recordings` Storage bucket),
+Google/Apple OAuth, Anthropic API key + model, Sentry DSN, Stripe (Phase 8).

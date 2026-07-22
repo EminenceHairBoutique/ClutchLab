@@ -234,6 +234,13 @@ export class MockAuthStore {
     this.usersById.set(user.id, user);
     // Mirrors the real signup trigger creating an empty profile row.
     this.profiles.set(user.id, emptyProfile());
+    // Mock-only demo affordance: an email starting with "editor-" gets the
+    // editor role so the review tooling is demoable without a database. Real
+    // Supabase role grants are server-side only (see SETUP.md); the mock
+    // store cannot run in production (env validation forbids it).
+    if (normalized.startsWith("editor-")) {
+      this.grantRole(user.id, "editor");
+    }
     return { ok: true, user };
   }
 

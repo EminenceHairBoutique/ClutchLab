@@ -13,6 +13,7 @@ const ADMIN_NAV = [
   { href: "/admin/versions", label: "Versions" },
   { href: "/admin/snapshots", label: "Meta snapshots" },
   { href: "/admin/moderation", label: "Moderation" },
+  { href: "/admin/coach", label: "AI reports" },
 ];
 
 /** Server-authoritative editor gate for every /admin route (spec §12, §13). */
