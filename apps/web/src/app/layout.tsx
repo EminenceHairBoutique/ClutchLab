@@ -2,7 +2,10 @@ import type { Metadata, Viewport } from "next";
 
 import { BottomNav } from "@/components/nav/bottom-nav";
 import { TopNav } from "@/components/nav/top-nav";
+import { PwaRegister } from "@/components/pwa-register";
+import { JsonLd } from "@/components/seo/json-ld";
 import { SiteFooter } from "@/components/site-footer";
+import { siteStructuredData } from "@/lib/seo/structured-data";
 
 import "./globals.css";
 
@@ -17,6 +20,13 @@ export const metadata: Metadata = {
   description:
     "Independent PUBG Mobile companion: verified pro settings, personalized sensitivity calibration, versioned meta, deliberate training, and post-match AI coaching.",
   applicationName: "ClutchLab",
+  // iPhone install support (Add to Home Screen → real standalone app).
+  appleWebApp: {
+    capable: true,
+    title: "ClutchLab",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
@@ -30,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-dvh font-sans">
+        <JsonLd data={siteStructuredData()} />
         <a
           href="#main"
           className="sr-only z-50 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
@@ -42,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </main>
         <SiteFooter />
         <BottomNav />
+        <PwaRegister />
       </body>
     </html>
   );

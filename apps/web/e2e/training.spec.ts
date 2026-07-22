@@ -62,4 +62,17 @@ test("full session round trip: plan → start → log → complete → weekly su
   await page.goto("/training");
   await expect(page.getByText("Your last 7 days")).toBeVisible();
   await expect(page.getByText("sessions completed")).toBeVisible();
+
+  // §5.14 report cadence: daily/weekly/monthly + a live 1-day streak.
+  await page.getByRole("link", { name: /Reports & streak/ }).click();
+  await page.waitForURL("**/training/reports");
+  await expect(page.getByText("Practice streak")).toBeVisible();
+  const streakCard = page
+    .locator("div.rounded-lg.border")
+    .filter({ hasText: "Practice streak" });
+  await expect(streakCard.getByText(/1\s*day/)).toBeVisible();
+  await expect(page.getByText("Today (last 24h)")).toBeVisible();
+  await expect(page.getByText("This week (last 7 days)")).toBeVisible();
+  await expect(page.getByText("This month (last 30 days)")).toBeVisible();
+  await expect(page.getByText(/No fabricated accuracy scores/)).toBeVisible();
 });

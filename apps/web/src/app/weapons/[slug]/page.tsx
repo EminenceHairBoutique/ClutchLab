@@ -20,7 +20,9 @@ import {
   WEAPON_CLASS_LABEL,
 } from "@/components/meta/badges";
 import { ProvenanceNote } from "@/components/meta/provenance-note";
+import { JsonLd } from "@/components/seo/json-ld";
 import { getMetaStore } from "@/lib/data/meta-store";
+import { breadcrumbStructuredData, weaponStructuredData } from "@/lib/seo/structured-data";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +65,20 @@ export default async function WeaponPage({ params }: WeaponPageProps) {
 
   return (
     <div className="space-y-5">
+      <JsonLd
+        data={weaponStructuredData({
+          name: weapon.name,
+          slug,
+          description: weapon.description ?? `${weapon.name} PUBG Mobile weapon reference.`,
+          weaponClass: WEAPON_CLASS_LABEL[weapon.weaponClass] ?? weapon.weaponClass,
+        })}
+      />
+      <JsonLd
+        data={breadcrumbStructuredData([
+          { name: "Weapons", path: "/weapons" },
+          { name: weapon.name, path: `/weapons/${slug}` },
+        ])}
+      />
       <nav aria-label="Breadcrumb" className="text-xs text-muted">
         <Link href="/weapons" className="hover:text-accent">
           Weapons

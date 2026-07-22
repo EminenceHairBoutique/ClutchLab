@@ -9,6 +9,7 @@ import { getMockAuthStore } from "@/lib/auth/mock-store";
 import { createServerSupabase } from "@/lib/auth/supabase-server";
 import { checkContentRisk } from "@/lib/community/risk-flags";
 import { getCommunityStore } from "@/lib/data/community-store";
+import { notify } from "@/lib/notifications/notify";
 
 export interface CommunityFormState {
   error: string | null;
@@ -80,8 +81,18 @@ export async function addCommentAction(
   if (!body.success) return { error: "Comments must be 1–4000 characters.", ok: false };
 
   const label = await authorLabelFor(user.id);
-  const result = await getCommunityStore().addComment(postId, user.id, label, body.data);
+  const store = getCommunityStore();
+  const result = await store.addComment(postId, user.id, label, body.data);
   if (!result.ok) return { error: result.error, ok: false };
+
+  const author = await store.getPostAuthor(postId);
+  if (author && author !== user.id) {
+    await notify(author, "community_reply", {
+      title: "New reply on your post",
+      body: `${label} commented: ${body.data.slice(0, 120)}`,
+      path: `/community/${postId}`,
+    });
+  }
   revalidatePath(`/community/${postId}`);
   return { error: null, ok: true };
 }

@@ -45,6 +45,11 @@ describe.runIf(available)("coach worker", () => {
   }
 
   it("processes a queued job end to end with persisted provenance", async () => {
+    // Opt in to §5.18 coach notifications so the worker's insert is observable.
+    await db.asUser(user, async (tx) => {
+      await tx`insert into public.notification_preferences (user_id, kind, enabled)
+               values (${user}, 'coach_response', true)`;
+    });
     const { uploadId, jobId } = await registerAndQueue("Worker happy path clip");
     const outcome = await processNextJob({ sql: db.sql, provider: new MockCoachProvider() });
     expect(outcome).toBe("succeeded");
@@ -74,6 +79,13 @@ describe.runIf(available)("coach worker", () => {
     const recommendations = await db.sql`select drill_slug from public.coaching_recommendations
                                          where report_id = ${reports[0]?.id as string}`;
     expect(recommendations.length).toBeGreaterThan(0);
+
+    // Opt-in preference was enabled → the worker delivered the inbox row.
+    const inbox = await db.sql`select kind, link_path from public.notifications
+                               where user_id = ${user}`;
+    expect(inbox).toHaveLength(1);
+    expect(inbox[0]?.kind).toBe("coach_response");
+    expect(inbox[0]?.link_path).toBe(`/coach/reports/${reports[0]?.id as string}`);
   });
 
   it("reprocessing a requeued job rewrites artifacts without duplication", async () => {

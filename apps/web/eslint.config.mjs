@@ -1,12 +1,9 @@
-import { FlatCompat } from "@eslint/eslintrc";
+import coreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
 import base from "@clutchlab/config/eslint";
 
-const compat = new FlatCompat({ baseDirectory: import.meta.dirname });
-
-const config = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-  ...base,
-];
+// eslint-config-next 16 ships native flat configs (no FlatCompat/eslintrc bridge).
+const config = [...coreWebVitals, ...nextTypescript, ...base];
 
 export default config;

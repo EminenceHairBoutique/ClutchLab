@@ -68,6 +68,9 @@ export default async function ProfilePage() {
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline">
+            <Link href="/notifications">Notifications</Link>
+          </Button>
+          <Button asChild variant="outline">
             <Link href="/billing">Plan &amp; billing</Link>
           </Button>
           <form action={signOutAction}>
