@@ -366,6 +366,7 @@ export interface Database {
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
           current_period_end: string | null;
+          cancel_at_period_end: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -377,6 +378,7 @@ export interface Database {
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
           current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -388,6 +390,7 @@ export interface Database {
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
           current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -1259,6 +1262,75 @@ export interface Database {
         reason: string;
         created_at: string;
       }>;
+      coach_profiles: ContentTable<
+        {
+          user_id: string;
+          display_name: string;
+          headline: string | null;
+          bio: string | null;
+          region: string | null;
+          languages: string[];
+          credentials: string | null;
+          availability_note: string | null;
+          verified: boolean;
+          accepting_bookings: boolean;
+          data_status: Database["public"]["Enums"]["data_status"];
+        } & Timestamps
+      >;
+      coach_services: ContentTable<
+        {
+          id: string;
+          coach_id: string;
+          kind: Database["public"]["Enums"]["coach_service_kind"];
+          title: string;
+          description: string | null;
+          price_cents: number;
+          currency: string;
+          delivery_days: number;
+          active: boolean;
+        } & Timestamps
+      >;
+      bookings: ContentTable<
+        {
+          id: string;
+          service_id: string;
+          coach_id: string;
+          player_id: string;
+          status: Database["public"]["Enums"]["booking_status"];
+          note: string | null;
+          deliverable: string | null;
+          responded_at: string | null;
+          delivered_at: string | null;
+          completed_at: string | null;
+        } & Timestamps
+      >;
+      marketplace_orders: ContentTable<
+        {
+          id: string;
+          booking_id: string;
+          player_id: string;
+          coach_id: string;
+          amount_cents: number;
+          currency: string;
+          platform_fee_cents: number;
+          coach_net_cents: number;
+          status: Database["public"]["Enums"]["order_status"];
+          stripe_payment_intent_id: string | null;
+          payout_status: Database["public"]["Enums"]["payout_status"];
+          paid_at: string | null;
+          refunded_at: string | null;
+          payout_at: string | null;
+        } & Timestamps
+      >;
+      coach_reviews: ContentTable<{
+        id: string;
+        booking_id: string;
+        coach_id: string;
+        player_id: string;
+        rating: number;
+        body: string | null;
+        created_at: string;
+      }>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -1392,6 +1464,24 @@ export interface Database {
       upload_status: "registered" | "uploaded" | "queued" | "processing" | "complete" | "failed";
       job_status: "queued" | "running" | "succeeded" | "failed";
       report_review_status: "pending_review" | "published" | "rejected";
+      coach_service_kind:
+        | "clip_review"
+        | "full_match_review"
+        | "sensitivity_calibration"
+        | "control_layout_review"
+        | "ultimate_royale_prep"
+        | "squad_vod_review"
+        | "map_strategy";
+      booking_status:
+        | "requested"
+        | "accepted"
+        | "declined"
+        | "delivered"
+        | "completed"
+        | "canceled"
+        | "disputed";
+      order_status: "pending_payment" | "paid" | "refunded" | "disputed";
+      payout_status: "not_due" | "pending" | "paid";
     };
     CompositeTypes: Record<string, never>;
   };
