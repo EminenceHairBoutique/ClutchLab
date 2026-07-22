@@ -96,6 +96,9 @@ tests, all 11 routes console-error-free on a mobile viewport).
 | D29 | 2026-07-22 | Design tokens exported as JS (`@clutchlab/ui/tokens`) with a unit test asserting exact equality against theme.css | Mobile can't consume CSS custom properties; a drift-guard test beats generation tooling at this scale. Web CSS stays the source of truth. |
 | D30 | 2026-07-22 | Mobile navigation = four tabs on local state + expo-linking; no navigation library yet | Flat screen graph doesn't justify expo-router's native-module tail (screens/gesture-handler/reanimated) in an environment where nothing native can run; deep-link mapping is isolated in tabForUrl() so graduating later is cheap. |
 | D31 | 2026-07-22 | Mobile ships reader-first: account features link to the web app; auth/uploads/push are documented milestones in MOBILE.md | Honest-placeholder protocol: real Supabase/EAS credentials and a physical device don't exist here; shipping unverifiable auth UI would be pretend-complete. The bundled-catalog readers are fully real and offline-capable. |
+| D32 | 2026-07-22 | iPhone distribution = the PWA (Add to Home Screen); the Expo app remains the native track | Full app on iPhone today with zero store/credential dependencies: standalone display, offline shell, and (once VAPID keys exist) push for installed web apps. Hand-rolled SW over a plugin: 3 explicit strategies beat opaque precache manifests. |
+| D33 | 2026-07-22 | §9 tables `drill_versions`, `drill_steps`, `benchmarks`, `source_snapshots`, `content_revisions` deliberately deferred | Each is a versioning/audit refinement of a live feature with no behavior behind it yet; schema-only tables would be fake completeness. Revisit when drill editing, measured benchmarks, or editorial revision history become real workflows. |
+| D34 | 2026-07-22 | Notification kinds are exactly the §5.18 twelve; product events map onto them (AI report + bookings → coach_response) rather than inventing new kinds | Keeps the preference matrix legible and spec-faithful; per-event splits can arrive later as sub-preferences if users need finer control. |
 
 ## Blockers (with exact unblocking steps)
 
@@ -303,6 +306,33 @@ tests, all 11 routes console-error-free on a mobile viewport).
 `pnpm test` ✅ (260 tests: 12 config + 12 ui + 16 meta-engine + 12 calibration + 30 content +
 19 coach + 15 billing + 8 mobile + 78 db/RLS/worker + 58 web) · `APP_ENV=test pnpm build` ✅
 (Next.js production build + expo export) · `APP_ENV=test pnpm e2e` ✅ (47 tests).
+
+## Post-phase slices — PWA, notifications, report cadence (done, 2026-07-22)
+
+Built after Phase 9 to close the spec sections that aren't numbered phases:
+
+- **iPhone PWA (§18)**: PNG icon set generated from the original mark (`generate:icons`
+  script; iOS ignores SVG manifest icons), maskable variant, standalone display +
+  apple-web-app metadata, service worker (network-first navigations with `/offline`
+  fallback, cache-first hashed assets, push handlers), registered app-wide. Install path:
+  Safari → Share → **Add to Home Screen**. 4 e2e tests verify manifest, metadata, an
+  ACTIVE registration, and the offline page.
+- **Notifications (§5.18 + §9 tables)**: migration 0009 — `notification_preferences`
+  (12 kinds, strictly opt-in default OFF), server-written `notifications` inbox,
+  `push_subscriptions`; owner-only RLS (4 tests). `notify()` gates on preference; live
+  triggers: AI report ready (mock pipeline + background worker SQL), report review
+  outcomes, booking request/response/delivery, community replies. `/notifications` =
+  inbox + preference matrix + per-device push (web-push behind VAPID env, honest
+  unconfigured state; iPhone push requires Home Screen install per iOS). 3 e2e tests
+  prove silence without opt-in and delivery with it.
+- **Report cadence (§5.14)**: `/training/reports` — daily/weekly/monthly aggregates over
+  logged data only + consecutive-day practice streak (unit-tested edge cases). No
+  fabricated metrics, stated in the UI.
+
+**Gate (repo root, 2026-07-22):** `pnpm lint` ✅ · `pnpm typecheck` ✅ · `pnpm test` ✅
+(270 tests: 12 config + 12 ui + 16 meta-engine + 12 calibration + 30 content + 19 coach +
+15 billing + 8 mobile + 82 db + 64 web) · `APP_ENV=test pnpm build` ✅ ·
+`APP_ENV=test pnpm e2e` ✅ (54 tests).
 
 ## Project state: all nine phases complete
 

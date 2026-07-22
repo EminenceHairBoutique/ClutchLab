@@ -1,9 +1,19 @@
-# ClutchLab Mobile (Expo)
+# ClutchLab Mobile
 
-`apps/mobile` — the Phase 9 native app. Reader-first MVP that shares the monorepo's content
-catalog, types, and design tokens. Nothing here contradicts the product's hard rules: no
-gameplay automation, no overlays, no live-match anything — the app reads, links, and (once
-credentials exist) uploads recordings after the match.
+Two tracks ship from this repo:
+
+1. **iPhone/Android PWA (recommended today)** — the full web app, installable with zero
+   store dependencies. On iPhone: open the deployed site in Safari → Share →
+   **Add to Home Screen**. You get the real app (all features, standalone chrome, offline
+   shell via the service worker), and push notifications once VAPID keys are configured —
+   iOS 16.4+ grants push to installed web apps only, which `/notifications` explains
+   in-product. See SETUP.md for the VAPID key steps.
+2. **Expo native app (`apps/mobile`)** — the Phase 9 reader-first native track, below.
+
+`apps/mobile` shares the monorepo's content catalog, types, and design tokens. Nothing here
+contradicts the product's hard rules: no gameplay automation, no overlays, no live-match
+anything — the app reads, links, and (once credentials exist) uploads recordings after the
+match.
 
 ## What ships now vs. what needs credentials
 
