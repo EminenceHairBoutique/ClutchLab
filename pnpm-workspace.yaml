@@ -13,15 +13,22 @@ catalog:
   react-dom: ^19.1.0
   "@types/react": ^19.1.0
   "@types/react-dom": ^19.1.0
+  # @types/node pinned to the Node runtime major (Vercel/engines = 22), not "latest".
   "@types/node": ^22.15.0
-  typescript: ^5.8.0
+  # TS pinned to the 6.0 line: typescript-eslint peers require <6.1.0, and 7.x is a dev build.
+  typescript: ~6.0.3
   zod: ^3.25.0
+  # eslint held at 9: eslint-config-next 16 still bundles eslint-plugin-react 7.37,
+  # which breaks on eslint 10's changed rule-context API. Revisit when the Next
+  # plugin tree supports eslint 10.
   eslint: ^9.28.0
-  typescript-eslint: ^8.33.0
+  typescript-eslint: ^8.65.0
   "@eslint/js": ^9.28.0
+  # vitest/vite/plugin-react held at 3.x/4.x: vitest 4 needs vite 8 + new babel peers
+  # (coordinated testing-stack major, low user value) — see DEPLOYMENT/PROGRESS notes.
   vitest: ^3.2.0
   "@vitejs/plugin-react": ^4.5.0
-  jsdom: ^26.1.0
+  jsdom: ^29.0.0
   "@testing-library/react": ^16.3.0
-  "@testing-library/jest-dom": ^6.6.0
+  "@testing-library/jest-dom": ^7.0.0
   "@testing-library/user-event": ^14.6.0

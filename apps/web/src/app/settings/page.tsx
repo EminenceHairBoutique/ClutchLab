@@ -32,8 +32,9 @@ export default async function SettingsPage() {
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-sm text-muted">
-          {explainers.length} settings explained — what each does, what it doesn&apos;t, and when
-          to retest. No setting is ever promised to fix your aim.
+          {explainers.length}
+          {" settings explained — what each does, what it doesn't, and when to retest. "}
+          No setting is ever promised to fix your aim.
         </p>
       </div>
 

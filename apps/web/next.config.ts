@@ -21,10 +21,8 @@ const nextConfig: NextConfig = {
     "@clutchlab/coach",
     "@clutchlab/billing",
   ],
-  eslint: {
-    // Linting runs as a dedicated `pnpm lint` gate; don't duplicate it inside `next build`.
-    ignoreDuringBuilds: true,
-  },
+  // Next 16 removed the built-in `eslint` config key (no more `next lint`);
+  // linting runs as a dedicated `pnpm lint` gate instead.
   async headers() {
     return [
       { source: "/:path*", headers: SECURITY_HEADERS },

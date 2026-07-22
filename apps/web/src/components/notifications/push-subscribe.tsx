@@ -17,14 +17,19 @@ export function PushSubscribe({ vapidPublicKey }: { vapidPublicKey: string }) {
   );
 
   useEffect(() => {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      setState("unsupported");
-      return;
-    }
-    void navigator.serviceWorker.ready.then(async (registration) => {
+    let active = true;
+    const detect = async (): Promise<typeof state> => {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) return "unsupported";
+      const registration = await navigator.serviceWorker.ready;
       const existing = await registration.pushManager.getSubscription();
-      setState(existing ? "subscribed" : "ready");
+      return existing ? "subscribed" : "ready";
+    };
+    void detect().then((next) => {
+      if (active) setState(next);
     });
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function subscribe() {
