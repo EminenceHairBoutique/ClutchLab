@@ -23,6 +23,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
 
+import { NotificationsBell } from "@/components/notifications/notifications-bell";
 import { BOTTOM_NAV_HREFS, BOTTOM_NAV_LABELS, DESTINATIONS } from "@/lib/navigation";
 
 const ICONS: Record<(typeof BOTTOM_NAV_HREFS)[number], LucideIcon> = {
@@ -81,7 +82,12 @@ export function BottomNav() {
               <SheetDescription id="more-nav-description">
                 Everything ClutchLab covers. Sections in development are marked with their phase.
               </SheetDescription>
-              <ul className="mt-4 grid grid-cols-1 gap-1">
+              <div className="mt-3 border-b border-border pb-2">
+                <SheetClose asChild>
+                  <NotificationsBell withLabel />
+                </SheetClose>
+              </div>
+              <ul className="mt-3 grid grid-cols-1 gap-1">
                 {DESTINATIONS.map((d) => (
                   <li key={d.href}>
                     <SheetClose asChild>

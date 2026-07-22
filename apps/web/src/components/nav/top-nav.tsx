@@ -4,6 +4,7 @@ import { cn } from "@clutchlab/ui";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { NotificationsBell } from "@/components/notifications/notifications-bell";
 import { DESTINATIONS } from "@/lib/navigation";
 
 /** Desktop header navigation. Hidden on mobile, where BottomNav takes over. */
@@ -40,6 +41,7 @@ export function TopNav() {
             })}
           </ul>
         </nav>
+        <NotificationsBell />
       </div>
     </header>
   );

@@ -63,3 +63,24 @@ test("offline fallback page renders", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /offline/i })).toBeVisible();
   await expect(page.getByText(/keep working from cache/i)).toBeVisible();
 });
+
+test("pages carry JSON-LD structured data (SEO §19)", async ({ page }) => {
+  await page.goto("/");
+  const siteLd = await page
+    .locator('script[type="application/ld+json"]')
+    .first()
+    .textContent();
+  const parsed = JSON.parse(siteLd ?? "{}") as { "@graph"?: Array<{ "@type": string }> };
+  const types = (parsed["@graph"] ?? []).map((n) => n["@type"]);
+  expect(types).toContain("Organization");
+  expect(types).toContain("SoftwareApplication");
+
+  // Weapon pages add a TechArticle + breadcrumb graph.
+  await page.goto("/weapons/m416");
+  const blocks = await page.locator('script[type="application/ld+json"]').allTextContents();
+  const joined = blocks.join(" ");
+  expect(joined).toContain("TechArticle");
+  expect(joined).toContain("BreadcrumbList");
+  // Never a fabricated rating.
+  expect(joined).not.toContain("aggregateRating");
+});
