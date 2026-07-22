@@ -1110,6 +1110,96 @@ export interface Database {
         note: string | null;
         created_at: string;
       }>;
+      posts: ContentTable<
+        {
+          id: string;
+          author_id: string;
+          author_label: string;
+          kind: Database["public"]["Enums"]["post_kind"];
+          title: string;
+          body: string;
+          status: Database["public"]["Enums"]["content_status"];
+          auto_flag_reason: string | null;
+        } & Timestamps
+      >;
+      comments: ContentTable<
+        {
+          id: string;
+          post_id: string;
+          author_id: string;
+          author_label: string;
+          body: string;
+          status: Database["public"]["Enums"]["content_status"];
+        } & Timestamps
+      >;
+      reactions: ContentTable<{
+        id: string;
+        post_id: string;
+        user_id: string;
+        kind: string;
+        created_at: string;
+      }>;
+      reports: ContentTable<
+        {
+          id: string;
+          reporter_id: string;
+          entity_type: string;
+          entity_id: string;
+          reason: Database["public"]["Enums"]["report_reason"];
+          detail: string | null;
+          status: Database["public"]["Enums"]["report_status"];
+          resolved_by: string | null;
+          resolved_at: string | null;
+        } & Timestamps
+      >;
+      moderation_actions: ContentTable<{
+        id: string;
+        moderator_id: string;
+        report_id: string | null;
+        action: Database["public"]["Enums"]["moderation_action_kind"];
+        entity_type: string | null;
+        entity_id: string | null;
+        note: string | null;
+        created_at: string;
+      }>;
+      reputation_events: ContentTable<{
+        id: string;
+        user_id: string;
+        delta: number;
+        reason: string;
+        created_at: string;
+      }>;
+      correction_requests: ContentTable<
+        {
+          id: string;
+          requester_id: string;
+          pro_slug: string;
+          claim: string;
+          source_url: string | null;
+          status: Database["public"]["Enums"]["report_status"];
+          resolved_by: string | null;
+          resolved_at: string | null;
+        } & Timestamps
+      >;
+      creator_profiles: ContentTable<
+        {
+          user_id: string;
+          display_name: string;
+          bio: string | null;
+          links: Json;
+          verified: boolean;
+        } & Timestamps
+      >;
+      creator_content: ContentTable<
+        {
+          id: string;
+          creator_id: string;
+          kind: string;
+          title: string;
+          body: string | null;
+          status: Database["public"]["Enums"]["content_status"];
+        } & Timestamps
+      >;
     };
     Views: Record<string, never>;
     Functions: {
@@ -1203,6 +1293,34 @@ export interface Database {
       session_status: "planned" | "in_progress" | "completed" | "abandoned";
       wow_status: "active" | "unverified" | "retired";
       finger_zone: "left_thumb" | "right_thumb" | "left_index" | "right_index" | "other";
+      post_kind:
+        | "discussion"
+        | "question"
+        | "settings"
+        | "layout"
+        | "drill_result"
+        | "meta_debate"
+        | "squad_recruitment"
+        | "correction";
+      content_status: "visible" | "flagged" | "removed" | "retracted";
+      report_reason:
+        | "cheating_content"
+        | "macro_or_script"
+        | "account_trading"
+        | "uc_scam"
+        | "credential_request"
+        | "harassment"
+        | "false_verification"
+        | "copyright"
+        | "spam"
+        | "other";
+      report_status: "open" | "actioned" | "dismissed";
+      moderation_action_kind:
+        | "remove_content"
+        | "restore_content"
+        | "dismiss_report"
+        | "warn_user"
+        | "note";
     };
     CompositeTypes: Record<string, never>;
   };

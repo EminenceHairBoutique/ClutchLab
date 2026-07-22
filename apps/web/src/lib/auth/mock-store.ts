@@ -53,6 +53,45 @@ export interface MockCode {
   createdAt: string;
 }
 
+export interface MockPost {
+  id: string;
+  authorId: string;
+  authorLabel: string;
+  kind: string;
+  title: string;
+  body: string;
+  status: "visible" | "flagged" | "removed" | "retracted";
+  autoFlagReason: string | null;
+  createdAt: string;
+}
+
+export interface MockComment {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorLabel: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface MockReaction {
+  id: string;
+  postId: string;
+  userId: string;
+  kind: string;
+}
+
+export interface MockReport {
+  id: string;
+  reporterId: string;
+  entityType: string;
+  entityId: string;
+  reason: string;
+  detail: string | null;
+  status: string;
+  createdAt: string;
+}
+
 export interface MockControlPosition {
   slug: string;
   x: number;
@@ -269,6 +308,115 @@ export class MockAuthStore {
 
   listCodes(userId: string, profileId: string | null): MockCode[] {
     return this.codes.filter((c) => c.userId === userId && c.profileId === profileId);
+  }
+
+  // --- Community (posts/comments/reactions/reports) ---
+
+  private posts: MockPost[] = [];
+  private postComments: MockComment[] = [];
+  private postReactions: MockReaction[] = [];
+  private communityReports: MockReport[] = [];
+
+  authorLabel(userId: string): string {
+    const profile = this.profiles.get(userId);
+    const user = this.usersById.get(userId);
+    return profile?.displayName ?? user?.email.split("@")[0] ?? "player";
+  }
+
+  createPost(
+    userId: string,
+    kind: string,
+    title: string,
+    body: string,
+    flagged: { flagged: boolean; reason: string | null },
+  ): MockPost {
+    const post: MockPost = {
+      id: randomUUID(),
+      authorId: userId,
+      authorLabel: this.authorLabel(userId),
+      kind,
+      title,
+      body,
+      status: flagged.flagged ? "flagged" : "visible",
+      autoFlagReason: flagged.reason,
+      createdAt: new Date().toISOString(),
+    };
+    this.posts.push(post);
+    return post;
+  }
+
+  listPosts(viewerId: string | null): MockPost[] {
+    return [...this.posts]
+      .filter((post) => post.status === "visible" || post.authorId === viewerId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  getPost(postId: string, viewerId: string | null): MockPost | null {
+    const post = this.posts.find((p) => p.id === postId);
+    if (!post) return null;
+    if (post.status !== "visible" && post.authorId !== viewerId) return null;
+    return post;
+  }
+
+  addComment(postId: string, userId: string, body: string): MockComment {
+    const comment: MockComment = {
+      id: randomUUID(),
+      postId,
+      authorId: userId,
+      authorLabel: this.authorLabel(userId),
+      body,
+      createdAt: new Date().toISOString(),
+    };
+    this.postComments.push(comment);
+    return comment;
+  }
+
+  listComments(postId: string): MockComment[] {
+    return this.postComments
+      .filter((c) => c.postId === postId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  toggleReaction(postId: string, userId: string, kind: string): void {
+    const index = this.postReactions.findIndex(
+      (r) => r.postId === postId && r.userId === userId && r.kind === kind,
+    );
+    if (index >= 0) {
+      this.postReactions.splice(index, 1);
+    } else {
+      this.postReactions.push({ id: randomUUID(), postId, userId, kind });
+    }
+  }
+
+  reactionCounts(postId: string): Record<string, number> {
+    const counts: Record<string, number> = {};
+    for (const reaction of this.postReactions.filter((r) => r.postId === postId)) {
+      counts[reaction.kind] = (counts[reaction.kind] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  addCommunityReport(
+    reporterId: string,
+    entityType: string,
+    entityId: string,
+    reason: string,
+    detail: string | null,
+  ): void {
+    this.communityReports.push({
+      id: randomUUID(),
+      reporterId,
+      entityType,
+      entityId,
+      reason,
+      detail,
+      status: "open",
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  listOwnReports(userId: string): MockReport[] {
+    return this.communityReports.filter((r) => r.reporterId === userId);
   }
 
   // --- Control layouts (immutable versions, same shape as sensitivity) ---
