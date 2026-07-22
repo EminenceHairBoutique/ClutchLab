@@ -1,0 +1,30 @@
+{
+  "name": "@clutchlab/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "expo export --platform ios --platform android --output-dir dist"
+  },
+  "dependencies": {
+    "@clutchlab/content": "workspace:*",
+    "@clutchlab/types": "workspace:*",
+    "@clutchlab/ui": "workspace:*",
+    "expo": "~57.0.7",
+    "expo-linking": "~57.0.3",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.8",
+    "react-native": "0.86.0"
+  },
+  "devDependencies": {
+    "@clutchlab/config": "workspace:*",
+    "@types/react": "~19.2.2",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

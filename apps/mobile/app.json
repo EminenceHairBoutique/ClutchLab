@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "ClutchLab",
+    "slug": "clutchlab",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "clutchlab",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0a0b0d",
+    "platforms": ["ios", "android"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.clutchlab.mobile"
+    },
+    "android": {
+      "package": "app.clutchlab.mobile",
+      "backgroundColor": "#0a0b0d",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [{ "scheme": "https", "host": "clutchlab.app", "pathPrefix": "/" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "extra": {
+      "webAppUrl": "https://clutchlab.app"
+    }
+  }
+}

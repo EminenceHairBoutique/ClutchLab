@@ -6,6 +6,7 @@ node_modules/
 .turbo/
 dist/
 out/
+.expo/
 *.tsbuildinfo
 
 # env — never commit secrets; keep .env.example current instead
