@@ -13,7 +13,7 @@ Persistent progress ledger per spec §0.1.2. A fresh session must be able to res
 | 1 | Foundation | **done** (2026-07-21, exit gate green) |
 | 2 | Versioned content + meta MVP | **done** (2026-07-21, exit gate green) |
 | 3 | Settings + sensitivity MVP | **done** (2026-07-21, exit gate green) |
-| 4 | Training MVP | not started |
+| 4 | Training MVP | **done** (2026-07-22, exit gate green) |
 | 5 | Control Studio | not started |
 | 6 | Community + verification | not started |
 | 7 | AI Coach | not started |
@@ -143,12 +143,28 @@ tests, all 11 routes console-error-free on a mobile viewport).
 `pnpm test` ✅ (155 tests: 10 config + 11 ui + 16 meta-engine + 12 calibration + 25 content +
 42 db/RLS + 39 web) · `APP_ENV=test pnpm build` ✅ · `APP_ENV=test pnpm e2e` ✅ (28 tests).
 
+## Phase 4 — Training MVP (done, 2026-07-22)
+
+- Migration 0004: skills/drills(+versions/steps)/plans(+items)/benchmarks (public, editor-write),
+  user_training_sessions + drill_results (owner-scoped). 47 db tests total.
+- Content: 20-skill taxonomy, **42 drills** with full §5.10 structure including the aim-assist
+  A/B pairs (§5.6 decision lab as drills), **10 plans** (5–60 min incl. 45-min UR aim-assist-off
+  program), benchmarks derived from drill criteria, WoW directory with **no invented map codes**.
+- Web: `/training` overview (weekly summary, generator form, plans, drill browser, WoW),
+  drill sheets with result logging, plan/generated session starts, session runner with
+  per-drill results and completion notes. Deterministic budget-capped plan generator (8 tests).
+- Deviations logged: weekly summary is the §5.14 slice (sessions/minutes/results/pass rate) —
+  richer daily/monthly/patch-adaptation reports build on drill_results in later phases;
+  drill_steps table exists but drills currently encode steps in prose fields.
+
+**Exit gate (repo root, 2026-07-22):** `pnpm lint` ✅ (8 workspaces) · `pnpm typecheck` ✅ ·
+`pnpm test` ✅ (173 tests: 10 config + 11 ui + 16 meta-engine + 12 calibration + 30 content +
+47 db/RLS + 47 web) · `APP_ENV=test pnpm build` ✅ · `APP_ENV=test pnpm e2e` ✅ (32 tests).
+
 ## Next steps (exact)
 
-1. **Phase 4 (training MVP):** migrations for skills/drills/drill_versions/drill_steps/
-   training_plans/plan_items/user_training_sessions/drill_results/benchmarks/wow_maps + RLS.
-2. Content: ≥40 drills (§5.10 structure incl. the aim-assist A/B drills), ≥10 training plans,
-   WoW map directory entries (codes with verify dates).
-3. `/training`: academy browser, daily plan generator (5–60 min), session tracking + results,
-   weekly summary; benchmarks.
-4. Exit gate, then Phase 5 (Control Studio) per IMPLEMENTATION_PLAN.md.
+1. **Phase 5 (Control Studio):** migrations for control_layouts/control_elements/
+   control_positions/control_analysis/control_test_results; visual HUD editor (original assets),
+   ergonomic analysis engine (finger travel/collisions/reach) + heat map, layout test drills
+   (already seeded in the drill catalog), layout versioning + sharing.
+2. Then Phase 6 (community + verification) per IMPLEMENTATION_PLAN.md.
