@@ -1,0 +1,5 @@
+# Supabase CLI project marker. The local dev stack (`supabase start`) is optional —
+# this repo's migrations also run against any Postgres via `pnpm db:migrate`
+# (see SETUP.md). Regenerate/extend this file with `supabase init` when linking
+# a real Supabase project.
+project_id = "clutchlab"

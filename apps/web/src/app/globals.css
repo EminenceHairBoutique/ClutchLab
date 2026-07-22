@@ -1,0 +1,34 @@
+@import "tailwindcss";
+@import "@clutchlab/ui/styles/theme.css";
+
+/* Component classes live outside this app's directory in the monorepo. */
+@source "../../../../packages/ui/src";
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle tactical grid motif (spec §7.1) — decorative only. */
+.tactical-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--color-border) 35%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-border) 35%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

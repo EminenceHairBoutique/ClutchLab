@@ -1,0 +1,28 @@
+{
+  "name": "@clutchlab/coach",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "worker": "tsx scripts/worker.ts"
+  },
+  "dependencies": {
+    "@clutchlab/content": "workspace:*",
+    "postgres": "^3.4.7",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@clutchlab/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "tsx": "^4.19.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

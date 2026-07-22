@@ -31,6 +31,42 @@ Next.js over a Vite SPA is deliberate — SEO/SSR requirements in spec §19. Don
 | migrate | `pnpm db:migrate` |
 | seed | `pnpm db:seed` |
 
+`test` includes RLS integration tests that boot a throwaway local PostgreSQL cluster
+(`supabase/tests/harness/`) and apply the real migrations; they skip with a loud warning if no
+`initdb`/`pg_ctl` is available and no `TEST_DATABASE_URL` is set. E2E route smoke: `pnpm e2e`
+(Playwright, preinstalled Chromium). **Builds without production credentials must set
+`APP_ENV=test`** (`APP_ENV=test pnpm build` / `APP_ENV=test pnpm e2e`) — production mode
+deliberately fails fast without Supabase env.
+
+## Directory map
+
+```
+apps/web              Next.js 15 App Router PWA; /admin = editor-gated editorial console
+packages/config       Zod env validation + shared eslint flat config
+packages/types        Database types (hand-authored; regen cmd in SETUP.md) + role constants
+packages/ui           Design system: Tailwind v4 @theme tokens + shadcn-style components
+packages/meta-engine  §10 explainable tier scoring (versioned methodology)
+packages/content      Typed 4.5/S31 catalog → generates supabase/seed_content.sql
+packages/db           db:migrate/db:seed runner + local-PG RLS test harness
+supabase/migrations   Supabase-compatible SQL (runs unchanged on real Supabase)
+supabase/seed.sql     Roles, permissions, device KB · seed_content.sql = GENERATED, don't edit
+supabase/tests        Auth shim for the local harness (never run against real Supabase)
+packages/calibration  §5.7 sensitivity model + 14-step guided calibration flow
+packages/coach        §5.13 AI provider abstraction, two-pass pipeline, queue worker (AI_COACH.md)
+packages/billing      §14 entitlements matrix + SDK-free Stripe provider + fee split
+apps/mobile           Expo reader app: shared tokens/catalog, deep links (MOBILE.md)
+```
+
+After editing `packages/content`, run `pnpm --filter @clutchlab/content generate` and commit the
+regenerated `supabase/seed_content.sql` — CI fails on drift.
+
+Docs: `PROGRESS.md` (ledger — read first) · `IMPLEMENTATION_PLAN.md` (phase map) · `SETUP.md`
+(env + Supabase swap-in) · `ARCHITECTURE.md` (stack rationale).
+
+Auth runs against real Supabase when env is configured; otherwise it auto-selects the clearly
+named `auth.mock.ts` in-memory adapter (or force with `AUTH_MOCK=1`). Never ship mock mode to
+production — prod env validation refuses it.
+
 ## Hard rules
 
 - **No gameplay automation.** No macros, overlays, injected code, or live-match assistance.

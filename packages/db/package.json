@@ -1,0 +1,24 @@
+{
+  "name": "@clutchlab/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "migrate": "node scripts/migrate.mjs",
+    "seed": "node scripts/seed.mjs"
+  },
+  "dependencies": {
+    "postgres": "^3.4.7"
+  },
+  "devDependencies": {
+    "@clutchlab/coach": "workspace:*",
+    "@clutchlab/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

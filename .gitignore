@@ -1,0 +1,28 @@
+# deps
+node_modules/
+
+# builds
+.next/
+.turbo/
+dist/
+out/
+.expo/
+*.tsbuildinfo
+
+# env — never commit secrets; keep .env.example current instead
+.env
+.env.*
+!.env.example
+
+# tests
+coverage/
+playwright-report/
+test-results/
+
+# local db harness data (never committed)
+.pgdata/
+supabase/.temp/
+
+# misc
+.DS_Store
+*.log
