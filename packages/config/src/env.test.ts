@@ -51,6 +51,22 @@ describe("parseServerEnv", () => {
     expect(parseServerEnv({ NEXT_PUBLIC_AUTH_GOOGLE: "1" }).NEXT_PUBLIC_AUTH_GOOGLE).toBe(true);
   });
 
+  it("treats blank env values as unset (Vercel / copied .env.example)", () => {
+    // Regression: empty APP_ENV=/AUTH_MOCK= (from .env.example) crashed boot.
+    const env = parseServerEnv({ APP_ENV: "", AUTH_MOCK: "", NEXT_PUBLIC_APP_URL: "" });
+    expect(env.appEnv).toBe("development");
+    expect(env.AUTH_MOCK).toBe(false);
+    expect(env.NEXT_PUBLIC_APP_URL).toBe("http://localhost:3000");
+  });
+
+  it("a fully-blank .env.example still yields production requiring Supabase (not an enum crash)", () => {
+    // Blanks resolve to unset → NODE_ENV=production drives the real prod check,
+    // which fails with the actionable message rather than an opaque enum error.
+    expect(() =>
+      parseServerEnv({ NODE_ENV: "production", APP_ENV: "", AUTH_MOCK: "", SENTRY_DSN: "" }),
+    ).toThrow(/NEXT_PUBLIC_SUPABASE_URL is required in production/);
+  });
+
   it("requires a model ID whenever the AI key is set (no hard-coded models)", () => {
     expect(() => parseServerEnv({ ANTHROPIC_API_KEY: "sk-ant-test-key" })).toThrow(
       /AI_COACH_MODEL is required/,

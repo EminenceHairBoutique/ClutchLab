@@ -66,8 +66,22 @@ export class EnvValidationError extends Error {
 
 export type EnvSource = Record<string, string | undefined>;
 
+/**
+ * Treat blank values ("") as unset. Vercel and copied `.env.example` files
+ * routinely pass empty strings for unfilled vars; without this, an empty
+ * `APP_ENV=`/`AUTH_MOCK=` fails optional-enum validation and crashes boot
+ * (the instrumentation hook then 500s every request).
+ */
+export function blankToUndefined(source: EnvSource): EnvSource {
+  const cleaned: EnvSource = {};
+  for (const [key, value] of Object.entries(source)) {
+    cleaned[key] = value === "" ? undefined : value;
+  }
+  return cleaned;
+}
+
 export function parseServerEnv(source: EnvSource): ServerEnv {
-  const parsed = rawSchema.safeParse(source);
+  const parsed = rawSchema.safeParse(blankToUndefined(source));
   if (!parsed.success) {
     throw new EnvValidationError(
       parsed.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`),

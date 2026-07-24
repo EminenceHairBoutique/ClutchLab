@@ -17,13 +17,16 @@ const clientSchema = z.object({
 
 export type ClientEnv = z.infer<typeof clientSchema>;
 
+/** Blank ("") env values are treated as unset (see env.ts blankToUndefined). */
+const blank = (v: string | undefined): string | undefined => (v === "" ? undefined : v);
+
 export const clientEnv: ClientEnv = clientSchema.parse({
-  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  NEXT_PUBLIC_AUTH_GOOGLE: process.env.NEXT_PUBLIC_AUTH_GOOGLE,
-  NEXT_PUBLIC_AUTH_APPLE: process.env.NEXT_PUBLIC_AUTH_APPLE,
+  NEXT_PUBLIC_APP_URL: blank(process.env.NEXT_PUBLIC_APP_URL),
+  NEXT_PUBLIC_SUPABASE_URL: blank(process.env.NEXT_PUBLIC_SUPABASE_URL),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: blank(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+  NEXT_PUBLIC_SENTRY_DSN: blank(process.env.NEXT_PUBLIC_SENTRY_DSN),
+  NEXT_PUBLIC_AUTH_GOOGLE: blank(process.env.NEXT_PUBLIC_AUTH_GOOGLE),
+  NEXT_PUBLIC_AUTH_APPLE: blank(process.env.NEXT_PUBLIC_AUTH_APPLE),
 });
 
 export function isOAuthEnabled(provider: "google" | "apple"): boolean {
