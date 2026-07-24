@@ -7,10 +7,33 @@
 --   3. supabase/seed_content.sql   (generated 4.5/S31 catalog + published snapshot)
 --
 -- This is exactly what `pnpm db:migrate && pnpm db:seed` applies. Run it once
--- against a fresh Supabase database (it relies on the Supabase `auth` schema,
--- `auth.uid()`, and the anon/authenticated/service_role roles). Regenerate with
--- the repo script rather than editing this file.
+-- against a Supabase database (it relies on the Supabase `auth` schema,
+-- `auth.uid()`, and the anon/authenticated/service_role roles).
+--
+-- The RESET block below recreates the `public` schema first, so this file is
+-- safe to re-run on a database that already has (some of) the schema — the
+-- migrations use plain `create type`/`create table`, which are not idempotent
+-- on their own.
 -- ============================================================================
+
+
+-- ============================================================================
+-- RESET (DESTRUCTIVE) — REMOVES EVERYTHING IN THE public SCHEMA, INCLUDING DATA.
+-- Comment out this block (the DROP/CREATE/GRANT lines below) to apply against a
+-- truly fresh database and have it fail loudly on any pre-existing objects.
+-- Supabase's own objects live in auth/storage/extensions and are NOT affected;
+-- the grants restore Supabase's default public-schema privileges after the drop.
+-- ============================================================================
+drop schema if exists public cascade;
+create schema public;
+
+grant usage on schema public to postgres, anon, authenticated, service_role;
+grant all on all tables in schema public to postgres, anon, authenticated, service_role;
+grant all on all routines in schema public to postgres, anon, authenticated, service_role;
+grant all on all sequences in schema public to postgres, anon, authenticated, service_role;
+alter default privileges in schema public grant all on tables to postgres, anon, authenticated, service_role;
+alter default privileges in schema public grant all on routines to postgres, anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to postgres, anon, authenticated, service_role;
 
 
 -- ============================================================================
